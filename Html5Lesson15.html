@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 15 (CSS columns)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+
+        #content {
+
+            -webkit-column-count: 2;
+            -webkit-column-rule: 1px solid #bbb;
+            -webkit-column-gap: 2em;
+
+            -moz-column-count: 2;
+            -moz-column-rule: 1px solid #bbb;
+            -moz-column-gap: 2em;
+
+            column-count: 2;
+            column-rule: 1px solid #bbb;
+            column-gap: 2em;
+
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>CSS控制列显示</h1>
+
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<div id="content"></div>
+<p id="log"></p>
+<script>
+    /*
+     * Insert text content via javascript
+     */
+    var content = document.getElementById('content');
+    var loremIpsum = '　　中医（Traditional Chinese Medicine）指中国传统医学，是研究人体生理、病理，以及疾病的诊断和防治等的一门学科。' +
+            '它承载着中国古代人民同疾病作斗争的经验和理论知识，是在古代朴素的唯物论和自发的辨证法思想指导下，通过长期医疗实践逐步形成并发展成的医学理论体系。' +
+            '在研究方法上，以整体观相似观为主导思想，以脏腑经络的生理、病理为基础，以辨证论治为诊疗依据，具有朴素的系统论、控制论，分形论和信息论内容。' +
+            '　　中医一般指中国以汉族劳动人民创造的传统医学为主的医学，所以也称汉医。中国其他传统医学，如藏医、蒙医、苗医等等则被称为民族医学。' +
+            '　　日本的汉方医学，韩国的韩医学，朝鲜称的高丽医学、越南的东医学都是以中医为基础发展起来的。在现今世界的医疗体系中，中医学被归类为替代医学中的一支。' +
+            '　　中医学以阴阳五行作为理论基础，将人体看成是气、形、神的统一体，通过望、闻、问、切，四诊合参的方法，探求病因、病性、病位、分析病机及人体内五脏六腑、经络关节、' +
+            '气血津液的变化、判断邪正消长，进而得出病名，归纳出证型，以辨证论治原则，制定“汗、吐、下、和、温、清、补、消”等治法，使用中药、针灸、推拿、按摩、拔罐、气功、' +
+            '食疗等多种治疗手段，使人体达到阴阳调和而康复。中医治疗的积极面在于希望可以协助恢复人体的阴阳平衡，而消极面则是希望当必须使用药物来减缓疾病的恶化时，' +
+            '还能兼顾生命与生活的品质。此外，中医学的最终目标并不仅止于治病，更进一步是帮助人类达到如同在《黄帝内经》中所提出的四种典范人物，即真人、至人、圣人、贤人的境界。' +
+            '　　传统的中医学思维模式与源于欧洲的现代科学并不相容，然而，当今之科学期刊已多有论文研究之，并试图用现代医学的角度分析中医中的部分现象和治疗机理。' +
+            '　　美国美国食品药品监督管理局在定义“完整医药体系”这个概念时提到中医学：“NCCAM（美国国家补充与另类医学中心）把完整医药体系描述为涉及‘完整医药体系是与' +
+            '对抗疗法（常规）医学独立地或平行地演变的完整的理论和实践体系’。这些可能反映了独特的文化体系，比如中医学和印度的阿输吠陀医学（英文）。' +
+            '完整医药体系都有一些共同的元素，相信机体有自愈的能力，这种自愈可能涉及到了应用情绪、身体和精神的治疗方法。”'
+    content.innerText = loremIpsum;
+
+    /*
+     * Insert slide bar
+     */
+    var contentStyle = content.style;
+    var slideBar = document.createElement('p');
+    slideBar.innerHTML = "<input type='range' min='1' max='6' value='2' />";
+    document.body.appendChild(slideBar);
+    slideBar.addEventListener('change', function (event) {
+        contentStyle.webkitColumnCount = event.target.value;
+    }, false);
+</script>
+</body>
+</html>​

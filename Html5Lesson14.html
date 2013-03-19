@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 14 (SVG support)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+        .example_desc {
+            font-family: Arial;
+            font-size: 18px;
+        }
+
+        .wide_spacing {
+            font-family: Arial;
+            font-size: 36px;
+            letter-spacing: 2px;
+            word-spacing: 8px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>SVG绘画</h1>
+
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<svg id="svg-area" width="838" height="140" viewBox="0 0 2000 380">
+    <rect x="100" y="20" rx="25" width="100" height="335" fill="#FAEBD7" stroke="purple" stroke-width="2"/>
+    <rect x="-50" y="300" width="300" height="75" fill="none" stroke="#4B0082" stroke-width="4"
+          transform="rotate(-30)"/>
+
+    <path d="M 950,200 h -150 a 150,150 0 1,0 150,-150 z" fill="red" stroke="blue" stroke-width="5"/>
+    <path d="M 925,175 v -150 a 150,150 0 0,0 -150,150 z" fill="yellow" stroke="blue" stroke-width="5"/>
+    <path d="M 1450,350 l 50,-25
+               a 25,25 -30 0,1 50,-25 l 50,-25
+               a 25,50 -30 0,1 50,-25 l 50,-25
+               a 25,75 -30 0,1 50,-25 l 50,-25
+               a 25,100 -30 0,1 50,-25 l 50,-25"
+          fill="none" stroke="red" stroke-width="5"/>
+</svg>
+<svg>
+    <text class="example_desc" x="50" y="20">Example 1: Text on a path</text>
+    <defs>
+        <path id="text-path" d="M 50 70 l 170 0 l 0 130 l 200 0">
+    </defs>
+    <use xlink:href="#text-path" fill="none" stroke="blue"/>
+    <text class="wide_spacing">
+        <textPath xlink:href="#text-path">This text follows a line</textPath>
+    </text>
+
+    <desc>Example 2: Text with decoration</desc>
+    <text class="example_desc" x="500" y="20">Example 2: Text with decoration</text>
+    <g font-size="25" fill="blue" stroke="gray" stroke-width="1">
+        <text x="500" y="80" text-decoration="line-through">Text with line-through</text>
+        <text x="500" y="140" text-decoration="underline">Underlined text</text>
+        <text x="500" y="200" text-decoration="underline">
+            <tspan>Each</tspan>
+            <tspan fill="white" stroke="purple">word</tspan>
+            <tspan fill="white" stroke="black">has</tspan>
+            <tspan fill="white" stroke="darkgreen" text-decoration="underline">different</tspan>
+            <tspan fill="white" stroke="blue">underlining</tspan>
+        </text>
+    </g>
+
+    <desc>Example 3: Lively text on a path</desc>
+    <text class="example_desc" x="50" y="300">Example 3: Lively text on a path</text>
+    <defs>
+        <path id="MyPath" d="M 100 420
+                             C 110 400 210 300 310 400
+                             C 400 500 420 520 460 500
+                             C 620 400 670 400 690 400"/>
+    </defs>
+    <use xlink:href="#MyPath" fill="none" stroke="red"/>
+    <text font-family="Verdana" font-size="30" fill="blue">
+        <textPath xlink:href="#MyPath">
+            We go
+            <tspan dy="-25" fill="red"> up</tspan>
+            <tspan dy="25"> ,</tspan>
+            then we go
+            <tspan dy="25" fill="green"> down</tspan>
+            <tspan dy="-25"> ,</tspan>
+            then up again
+        </textPath>
+    </text>
+</svg>
+</body>
+</html>​

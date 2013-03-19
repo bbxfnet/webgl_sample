@@ -1,0 +1,764 @@
+
+<html>
+<head>
+    <title>Derek Liu's Shader Language Lesson 01 (Ball bounce)</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style type="text/css">
+        canvas {
+            border: 2px solid black;
+            -moz-box-shadow: black 2px 2px 2px;
+            background-color: black;
+        }
+    </style>
+    <script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1337314020.jpg" type="text/javascript"></script>
+    <script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1337314011.jpg" type="text/javascript"></script>
+
+    <!-- Fragment shader program -->
+
+    <script id="ball-shader-fs" type="x-shader/x-fragment">
+        uniform sampler2D uSampler;
+        uniform highp vec4 lightDir;
+
+        varying highp vec3 normal;
+        varying highp vec3 viewVec;
+        varying highp vec2 vTextureCoord;
+
+        highp float saturate(highp float value)
+        {
+        return clamp( value, 0.0, 1.0);
+        }
+
+        void main(void) {
+        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+
+        highp vec3 nNormal    = normalize(normal);
+        highp vec3 lv         = vec3( lightDir.x, lightDir.y, -lightDir.z);
+        // Soft diffuse
+        highp float diffuse = 0.5 + 0.5 * dot(lv, nNormal);
+
+        // Standard specular
+        highp vec3 reflectionVector = reflect(-normalize(viewVec), nNormal);
+        highp float specular = pow(saturate(dot(reflect(-normalize(viewVec), nNormal), lv)), 32.0);
+
+        gl_FragColor = diffuse * gl_FragColor + specular;
+        }
+    </script>
+
+    <!-- Vertex shader program -->
+
+    <script id="ball-shader-vs" type="x-shader/x-vertex">
+        attribute highp vec3 aVertexPosition;
+        attribute highp vec2 aTextureCoord;
+        attribute highp vec3 aVertexNormal;
+
+        uniform highp mat4 uNormalMatrix;
+        uniform highp mat4 uMVMatrix;
+        uniform highp mat4 uPMatrix;
+
+        uniform highp float bounceHeight;
+        uniform highp float bounceSpeed;
+        uniform highp float ballSize;
+        uniform highp float time_0_X;
+
+        varying highp vec3 normal;
+        varying highp vec3 viewVec;
+        varying highp vec2 vTextureCoord;
+
+        void main(void) {
+        highp vec3 Pos = ballSize * normalize(vec3(aVertexPosition));
+
+        // Create a bouncy movement
+        highp float t = fract( time_0_X * bounceSpeed )  ;
+        t *= 4.0 * (1.0 - t) ;
+
+        Pos.z += bounceHeight * t;
+
+        gl_Position = uPMatrix * uMVMatrix * vec4(Pos,1.0);
+
+        // gl_NormalMatrix the inverse of the upper 3x3 of the view matrix.
+        normal = vec3(uNormalMatrix * vec4(aVertexNormal,0.0));
+
+        viewVec   = vec3(uMVMatrix * vec4(Pos.xyz, 1.0));
+        viewVec.z = -viewVec.z;
+
+        vTextureCoord = aTextureCoord;
+        }
+    </script>
+
+    <!-- Fragment shader program -->
+
+    <script id="plane-shader-fs" type="x-shader/x-fragment">
+        uniform sampler2D uSampler;
+        uniform highp vec4 lightDir;
+
+        varying highp vec2 vTexCoord;
+        varying highp vec3 vNormal;
+        varying highp vec3 vViewVec;
+
+
+        highp float saturate( highp float value)
+        {
+        return clamp( value, 0.0, 1.0);
+        }
+
+        void main(void) {
+        highp vec3 lightVec   = vec3(lightDir.x, lightDir.y, -lightDir.z);
+        gl_FragColor = texture2D(uSampler, vec2(vTexCoord.s, vTexCoord.t));
+
+        // Soft diffuse
+        highp float diffuse = 0.5 + 0.5 * dot(lightVec, vNormal);
+
+        // Standard Specular
+        highp float specular = pow(saturate(dot(reflect(-normalize(vViewVec), vNormal),lightVec)), 64.0);
+
+        gl_FragColor =  diffuse * gl_FragColor + 0.4 * specular;
+        }
+    </script>
+
+    <!-- Vertex shader program -->
+
+    <script id="plane-shader-vs" type="x-shader/x-vertex">
+        attribute highp vec3 aVertexPosition;
+        attribute highp vec2 aTextureCoord;
+        attribute highp vec3 aVertexNormal;
+
+        uniform highp mat4 uNormalMatrix;
+        uniform highp mat4 uMVMatrix;
+        uniform highp mat4 uPMatrix;
+        uniform highp float bounceHeight;
+        uniform highp float bounceSpeed;
+        uniform highp float time_0_X;
+        uniform highp float bounciness;
+        uniform highp float ballSize;
+        uniform highp float hardness;
+        uniform highp float stiffness;
+
+        varying highp vec2 vTexCoord;
+        varying highp vec3 vNormal;
+        varying highp vec3 vViewVec;
+
+        // Offsets at which we sample the heights to form the normal
+        highp vec2 offX = vec2(0.01, 0.0);
+        highp vec2 offY = vec2(0.0, 0.01);
+
+        highp float sinc(highp float x)
+        {
+        return sin(x) / x;
+        }
+
+        // Returns the height at the given position
+        highp float getZ(highp vec2 Pos, highp float push, highp float ballz)
+        {
+
+        highp float punch = exp2(-stiffness * dot(Pos,Pos));
+
+        ballz -= sqrt(max(ballSize * ballSize - dot(Pos, Pos), 0.0));
+
+        // Make sure the ball never leaks through
+        return min(punch * push, ballz);
+        }
+
+        void main(void)
+        {
+        // Our model is a little too large ...
+        highp vec4 Pos = vec4(aVertexPosition,1.0);
+        //Pos.xyz *=  0.4;
+        // The balls bouncy movement
+        highp float s = fract(bounceSpeed * time_0_X);
+        highp float t = 4.0 * s * (1.0 - s);
+
+        // The height at which the ball currently is, slightly
+        // offset to ensure no leaks.
+        highp float ballz = bounceHeight * t - 3.0;
+
+        // The vibrating movement of the surface
+        highp float push = -ballSize * sinc(hardness * s);
+        // Sample at current position and two neighbors
+
+        highp float z0 = getZ(Pos.xy, push, ballz);
+
+        highp float z1 = getZ(Pos.xy + offX, push, ballz);
+
+        highp float z2 = getZ(Pos.xy + offY, push, ballz);
+
+        Pos.z = z0;
+
+        gl_Position = uPMatrix * uMVMatrix * Pos;
+        vNormal = aVertexNormal;
+
+        highp vec3 tangent  = vec3(offX, z1 - z0);
+        highp vec3 binormal = vec3(offY, z2 - z0);
+
+        // Construct the normal
+        vNormal = normalize(cross(tangent, binormal));
+
+        // Eye-space lighting
+        vNormal     = vec3(uNormalMatrix * vec4(vNormal,0.0));
+
+        vViewVec    = -vec3(uMVMatrix * Pos);
+        vTexCoord   = vec2(aTextureCoord);
+        }
+    </script>
+</head>
+
+<body>
+<canvas id="glcanvas" width="640" height="480">
+    Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+</canvas>
+<script type="text/javascript">
+var canvas;
+var gl;
+
+var ballProgram;
+var ballVerticesBuffer, ballVerticesTextureCoordBuffer, ballVerticesIndexBuffer, ballVerticesNormalBuffer;
+var ballImage, ballTexture;
+var ballVerticesPositionAttribute, ballVerticesNormalAttribute, ballTextureCoordAttribute;
+
+var planeProgram;
+var planeVerticesBuffer, planeVerticesTextureCoordBuffer, planeVerticesIndexBuffer, planeVerticesNormalBuffer;
+var planeImage, planeTexture;
+var planeVerticesPositionAttribute, planeVerticesNormalAttribute, planeTextureCoordAttribute;
+
+var lastCubeUpdateTime = 0;
+
+var mvMatrix;
+var perspectiveMatrix;
+
+var stacks = 32, slices = 64, radius = 5;
+var ballVertices = [], ballVerticesTextureCoordinates = [], ballVertexIndices = [], ballVerticesNormals = [];
+
+var size = 50, width = 50, height = 50;
+var planeVertices = [], planeVerticesTextureCoordinates = [], planeVertexIndices = [], planeVerticesNormals = [];
+
+var oldTime,elapsedTime=0.0;
+
+var yrot = 0.0;
+
+start();
+//
+// start
+//
+// Called when the canvas is created to get the ball rolling.
+//
+function start() {
+    canvas = document.getElementById("glcanvas");
+
+    initWebGL();      // Initialize the GL context
+
+    // Only continue if WebGL is available and working
+
+    oldTime = Date.now();
+
+    if (gl) {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
+        gl.clearDepth(1.0);                 // Clear everything
+        gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+        gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+
+        // Initialize the shaders; this is where all the lighting for the
+        // vertices and so forth is established.
+
+        initShaders();
+
+        // Here's where we call the routine that builds all the objects
+        // we'll be drawing.
+
+        initBuffers();
+
+        // Next, load and set up the textures we'll be using.
+
+        initTextures();
+
+        // Set up to draw the scene periodically.
+
+        setInterval(drawScene, 15);
+
+        document.addEventListener( 'keydown', onDocumentKeyDown, false );
+    }
+}
+
+//
+// initWebGL
+//
+// Initialize WebGL, returning the GL context or null if
+// WebGL isn't available or could not be initialized.
+//
+function initWebGL() {
+    gl = null;
+
+    try {
+        gl = canvas.getContext("experimental-webgl");
+    }
+    catch(e) {
+    }
+
+    // If we don't have a GL context, give up now
+
+    if (!gl) {
+        alert("Unable to initialize WebGL. Your browser may not support it.");
+    }
+}
+//
+// initBuffers
+//
+// Initialize the buffers we'll need. For this demo, we just have
+// one object -- a simple two-dimensional cube.
+//
+function initBuffers() {
+    //First build a ball
+    var rho, drho, theta, dtheta;
+    var x, y, z;
+    var s, t, ds, dt;
+    var i, j, imin=0, imax=0;
+    var nsign = 1.0;
+    var normals = true;
+
+    drho = Math.PI / stacks;
+    dtheta = 2.0 * Math.PI / slices;
+    ds = 1.0 / slices;
+    dt = 1.0 / stacks;
+    t = 1.0; // because loop now runs from 0
+    imax = stacks;
+
+    // draw intermediate stacks as quad strips
+    for (i = imin; i < imax; i++) {
+        rho = i * drho;
+        s = 0.0;
+        for (j = 0; j <= slices; j++) {
+            theta = (j == slices) ? 0.0 : j * dtheta;
+            x = -Math.sin(theta) * Math.sin(rho);
+            y = Math.cos(theta) * Math.sin(rho);
+            z = nsign * Math.cos(rho);
+            if (normals) {
+                ballVerticesNormals[(i*(slices+1)+j)*6] = x * nsign;
+                ballVerticesNormals[(i*(slices+1)+j)*6+1] = y * nsign;
+                ballVerticesNormals[(i*(slices+1)+j)*6+2] = z * nsign;
+            }
+            ballVerticesTextureCoordinates[(i*(slices+1)+j)*4] = 1-s;
+            ballVerticesTextureCoordinates[(i*(slices+1)+j)*4+1] = t;
+            ballVertices[(i*(slices+1)+j)*6] = x * radius;
+            ballVertices[(i*(slices+1)+j)*6+1] = y * radius;
+            ballVertices[(i*(slices+1)+j)*6+2] = z * radius;
+            x = -Math.sin(theta) * Math.sin(rho + drho);
+            y = Math.cos(theta) * Math.sin(rho + drho);
+            z = nsign * Math.cos(rho + drho);
+            if (normals) {
+                ballVerticesNormals[(i*(slices+1)+j)*6+3] = x * nsign;
+                ballVerticesNormals[(i*(slices+1)+j)*6+4] = y * nsign;
+                ballVerticesNormals[(i*(slices+1)+j)*6+5] = z * nsign;
+            }
+            ballVerticesTextureCoordinates[(i*(slices+1)+j)*4+2] = 1-s;
+            ballVerticesTextureCoordinates[(i*(slices+1)+j)*4+3] = t - dt;
+            s += ds;
+            ballVertices[(i*(slices+1)+j)*6+3] = x * radius;
+            ballVertices[(i*(slices+1)+j)*6+4] = y * radius;
+            ballVertices[(i*(slices+1)+j)*6+5] = z * radius;
+
+            if(j>0){
+                ballVertexIndices[(i*(slices+1)+(j-1))*6] = (i*(slices+1)+(j-1))*2;
+                ballVertexIndices[(i*(slices+1)+(j-1))*6+1] = (i*(slices+1)+(j-1))*2+1;
+                ballVertexIndices[(i*(slices+1)+(j-1))*6+2] = (i*(slices+1)+j)*2;
+                ballVertexIndices[(i*(slices+1)+(j-1))*6+3] = (i*(slices+1)+(j-1))*2+1;
+                ballVertexIndices[(i*(slices+1)+(j-1))*6+4] = (i*(slices+1)+j)*2;
+                ballVertexIndices[(i*(slices+1)+(j-1))*6+5] = (i*(slices+1)+j)*2+1;
+            }
+        }
+        t -= dt;
+    }
+
+    gl.useProgram(ballProgram);
+    ballVerticesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(ballVertices), gl.STATIC_DRAW);
+
+    ballVerticesTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(ballVerticesTextureCoordinates), gl.STATIC_DRAW);
+
+    ballVerticesNormalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesNormalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(ballVerticesNormals), gl.STATIC_DRAW);
+
+    ballVerticesIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ballVerticesIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(ballVertexIndices), gl.STATIC_DRAW);
+
+    //Then build a plane
+    var mesh = [];
+    for (var x = 0; x < size; x++)
+    {
+        mesh[x] = [];
+        for (var z = 0; z < size; z++)
+        {
+            mesh[x][z] = [];
+            mesh[x][z][0] = x - (size / 2);						// We Want To Center Our Mesh Around The Origin
+            mesh[x][z][1] = z - (size / 2);						// We Want To Center Our Mesh Around The Origin
+            mesh[x][z][2] = 0.0;										// Set The Y Values For All Points To 0
+        }
+    }
+    var i=0,j=0,k=0,t=0;
+    for(var x = 0; x < size-1; x++ ) {
+        for(var z = 0; z < size-1; z++ ) {
+            var float_x = x/(size-1);
+            var float_z = 1-z/(size-1);
+            var float_xb = (x+1)/(size-1);
+            var float_zb = 1-(z+1)/(size-1);
+
+            planeVerticesTextureCoordinates[i]   = float_x;
+            planeVerticesTextureCoordinates[i+1] = float_z;
+            planeVertices[j]    = mesh[x][z][0];
+            planeVertices[j+1]  = mesh[x][z][1];
+            planeVertices[j+2]  = mesh[x][z][2];
+            planeVerticesNormals[j]   = 0.0;
+            planeVerticesNormals[j+1] = 0.0;
+            planeVerticesNormals[j+2] = 1.0;
+
+            planeVerticesTextureCoordinates[i+2] = float_x;
+            planeVerticesTextureCoordinates[i+3] = float_zb;
+            planeVertices[j+3]  = mesh[x][z+1][0];
+            planeVertices[j+4]  = mesh[x][z+1][1];
+            planeVertices[j+5]  = mesh[x][z+1][2];
+            planeVerticesNormals[j+3] = 0.0;
+            planeVerticesNormals[j+4] = 0.0;
+            planeVerticesNormals[j+5] = 1.0;
+
+            planeVerticesTextureCoordinates[i+4] = float_xb;
+            planeVerticesTextureCoordinates[i+5] = float_zb;
+            planeVertices[j+6]  = mesh[x+1][z+1][0];
+            planeVertices[j+7]  = mesh[x+1][z+1][1];
+            planeVertices[j+8]  = mesh[x+1][z+1][2];
+            planeVerticesNormals[j+6] = 0.0;
+            planeVerticesNormals[j+7] = 0.0;
+            planeVerticesNormals[j+8] = 1.0;
+
+            planeVerticesTextureCoordinates[i+6] = float_xb;
+            planeVerticesTextureCoordinates[i+7] = float_z;
+            planeVertices[j+9]  = mesh[x+1][z][0];
+            planeVertices[j+10] = mesh[x+1][z][1];
+            planeVertices[j+11] = mesh[x+1][z][2];
+            planeVerticesNormals[j+9]  = 0.0;
+            planeVerticesNormals[j+10] = 0.0;
+            planeVerticesNormals[j+11] = 1.0;
+
+            planeVertexIndices[k] = t;
+            planeVertexIndices[k+1] = t+1;
+            planeVertexIndices[k+2] = t+2;
+            planeVertexIndices[k+3] = t;
+            planeVertexIndices[k+4] = t+2;
+            planeVertexIndices[k+5] = t+3;
+
+            i=i+8;
+            j=j+12;
+            k=k+6;
+            t=t+4;
+        }
+    }
+
+    gl.useProgram(planeProgram);
+    planeVerticesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(planeVertices), gl.STATIC_DRAW);
+
+    planeVerticesTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesTextureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(planeVerticesTextureCoordinates), gl.STATIC_DRAW);
+
+    planeVerticesNormalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesNormalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(planeVerticesNormals), gl.STATIC_DRAW);
+
+    planeVerticesIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeVerticesIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(planeVertexIndices), gl.STATIC_DRAW);
+}
+
+//
+// initTextures
+//
+// Initialize the textures we'll be using, then initiate a load of
+// the texture images. The handleTextureLoaded() callback will finish
+// the job; it gets called each time a texture finishes loading.
+//
+function initTextures() {
+    ballTexture = gl.createTexture();
+    ballImage = new Image();
+    ballImage.crossOrigin = "";
+    ballImage.onload = function() { handleTextureLoaded(ballImage, ballTexture); }
+    ballImage.src = "http://derekliu.blog.51cto.com/album/4479510/133601717824.png";
+    
+    planeTexture = gl.createTexture();
+    planeImage = new Image();
+    planeImage.crossOrigin = "";
+    planeImage.onload = function() { handleTextureLoaded(planeImage, planeTexture); }
+    planeImage.src = "http://derekliu.blog.51cto.com/album/4479510/133601724534.png";
+}
+
+function handleTextureLoaded(image, texture) {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+//
+// drawScene
+//
+// Draw the scene.
+//
+function drawScene() {
+    // Clear the canvas before we start drawing on it.
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Establish the perspective with which we want to view the
+    // scene. Our field of view is 45 degrees, with a width/height
+    // ratio of 640:480, and we only want to see objects between 0.1 units
+    // and 100 units away from the camera.
+
+    perspectiveMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
+
+    loadIdentity();
+
+    mvTranslate([0.0,0.0,-90.0]);
+    mvRotate(-45,[1.0,0.0,0.0]);
+//    mvRotate(yrot,[1.0,1.0,0.0]);
+    
+    gl.useProgram(ballProgram);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesBuffer);
+    gl.vertexAttribPointer(ballVerticesPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesTextureCoordBuffer);
+    gl.vertexAttribPointer(ballTextureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ballVerticesNormalBuffer);
+    gl.vertexAttribPointer(ballVerticesNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, ballTexture);
+    gl.uniform1i(gl.getUniformLocation(ballProgram, "uSampler"), 0);
+    gl.uniform3f(gl.getUniformLocation(ballProgram, "lightDir"), -0.43644,0.21822,-0.87287);
+    gl.uniform1f(gl.getUniformLocation(ballProgram, "bounceHeight"), 20);
+    gl.uniform1f(gl.getUniformLocation(ballProgram, "bounceSpeed"), 3.2);
+    gl.uniform1f(gl.getUniformLocation(ballProgram, "ballSize"), 2);
+    gl.uniform1f(gl.getUniformLocation(ballProgram, "time_0_X"), elapsedTime);
+    // Draw.
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ballVerticesIndexBuffer);
+    setMatrixUniforms(ballProgram);
+    gl.drawElements(gl.TRIANGLES, ballVertexIndices.length, gl.UNSIGNED_SHORT, 0);
+
+    gl.useProgram(planeProgram);
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesBuffer);
+    gl.vertexAttribPointer(planeVerticesPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesTextureCoordBuffer);
+    gl.vertexAttribPointer(planeTextureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeVerticesNormalBuffer);
+    gl.vertexAttribPointer(planeVerticesNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, planeTexture);
+    gl.uniform1i(gl.getUniformLocation(planeProgram, "uSampler"), 0);
+    gl.uniform3f(gl.getUniformLocation(planeProgram, "lightDir"), -0.43644,0.21822,-0.87287);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "bounceHeight"), 20);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "bounceSpeed"), 3.2);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "ballSize"), 2);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "time_0_X"), elapsedTime);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "bounciness"), 0.55);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "hardness"), 25.0);
+    gl.uniform1f(gl.getUniformLocation(planeProgram, "stiffness"), 0.00012);
+    // Draw.
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, planeVerticesIndexBuffer);
+    setMatrixUniforms(planeProgram);
+    gl.drawElements(gl.TRIANGLES, planeVertexIndices.length, gl.UNSIGNED_SHORT, 0);
+
+    // Update the rotation for the next draw, if it's time to do so.
+
+    var currentTime = (new Date).getTime();
+    lastCubeUpdateTime = currentTime;
+    var newTime = Date.now();
+    var diff = 0.0005 * ( newTime - oldTime );
+    oldTime = newTime;
+
+    elapsedTime += diff;
+
+    yrot +=0.2;
+}
+
+function onDocumentKeyDown ( event ) {
+    //event.preventDefault();
+
+}
+
+//
+// initShaders
+//
+// Initialize the shaders, so WebGL knows how to light our scene.
+//
+function initShaders() {
+    var fragmentShader = getShader(gl, "ball-shader-fs");
+    var vertexShader = getShader(gl, "ball-shader-vs");
+
+    // Create the shader program
+
+    ballProgram = gl.createProgram();
+    gl.attachShader(ballProgram, vertexShader);
+    gl.attachShader(ballProgram, fragmentShader);
+    gl.linkProgram(ballProgram);
+
+    // If creating the shader program failed, alert
+
+    if (!gl.getProgramParameter(ballProgram, gl.LINK_STATUS)) {
+        alert("Unable to initialize the ballProgram.");
+    }
+
+     ballVerticesPositionAttribute = gl.getAttribLocation(ballProgram, "aVertexPosition");
+    gl.enableVertexAttribArray( ballVerticesPositionAttribute);
+
+    ballVerticesNormalAttribute = gl.getAttribLocation(ballProgram, "aVertexNormal");
+    gl.enableVertexAttribArray(ballVerticesNormalAttribute);
+
+    ballTextureCoordAttribute = gl.getAttribLocation(ballProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(ballTextureCoordAttribute);
+
+
+    fragmentShader = getShader(gl, "plane-shader-fs");
+    vertexShader = getShader(gl, "plane-shader-vs");
+
+    // Create the shader program
+
+    planeProgram = gl.createProgram();
+    gl.attachShader(planeProgram, vertexShader);
+    gl.attachShader(planeProgram, fragmentShader);
+    gl.linkProgram(planeProgram);
+
+    // If creating the shader program failed, alert
+
+    if (!gl.getProgramParameter(planeProgram, gl.LINK_STATUS)) {
+        alert("Unable to initialize the planeProgram.");
+    }
+
+    planeVerticesPositionAttribute = gl.getAttribLocation(planeProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(planeVerticesPositionAttribute);
+
+    planeVerticesNormalAttribute = gl.getAttribLocation(planeProgram, "aVertexNormal");
+    gl.enableVertexAttribArray(planeVerticesNormalAttribute);
+
+    planeTextureCoordAttribute = gl.getAttribLocation(planeProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(planeTextureCoordAttribute);
+}
+
+//
+// getShader
+//
+// Loads a shader program by scouring the current document,
+// looking for a script with the specified ID.
+//
+function getShader(gl, id) {
+    var shaderScript = document.getElementById(id);
+
+    // Didn't find an element with the specified ID; abort.
+
+    if (!shaderScript) {
+        return null;
+    }
+
+    // Walk through the source element's children, building the
+    // shader source string.
+
+    var theSource = "";
+    var currentChild = shaderScript.firstChild;
+
+    while(currentChild) {
+        if (currentChild.nodeType == 3) {
+            theSource += currentChild.textContent;
+        }
+
+        currentChild = currentChild.nextSibling;
+    }
+
+    // Now figure out what type of shader script we have,
+    // based on its MIME type.
+
+    var shader;
+
+    if (shaderScript.type == "x-shader/x-fragment") {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+    } else if (shaderScript.type == "x-shader/x-vertex") {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+    } else {
+        return null;  // Unknown shader type
+    }
+
+    // Send the source to the shader object
+
+    gl.shaderSource(shader, theSource);
+
+    // Compile the shader program
+
+    gl.compileShader(shader);
+
+    // See if it compiled successfully
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
+        return null;
+    }
+
+    return shader;
+}
+
+//
+// Matrix utility functions
+//
+
+function loadIdentity() {
+    mvMatrix = Matrix.I(4);
+}
+
+function multMatrix(m) {
+    mvMatrix = mvMatrix.x(m);
+}
+
+function mvTranslate(v) {
+    multMatrix(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
+}
+
+function setMatrixUniforms(shaderProgram) {
+    var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    gl.uniformMatrix4fv(pUniform, false, new Float32Array(perspectiveMatrix.flatten()));
+
+    var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    gl.uniformMatrix4fv(mvUniform, false, new Float32Array(mvMatrix.flatten()));
+
+    var normalMatrix = mvMatrix.inverse();
+    normalMatrix = normalMatrix.transpose();
+    var nUniform = gl.getUniformLocation(shaderProgram, "uNormalMatrix");
+    gl.uniformMatrix4fv(nUniform, false, new Float32Array(normalMatrix.flatten()));
+}
+
+var mvMatrixStack = [];
+
+function mvPushMatrix(m) {
+    if (m) {
+        mvMatrixStack.push(m.dup());
+        mvMatrix = m.dup();
+    } else {
+        mvMatrixStack.push(mvMatrix.dup());
+    }
+}
+
+function mvPopMatrix() {
+    if (!mvMatrixStack.length) {
+        throw("Can't pop from an empty matrix stack.");
+    }
+
+    mvMatrix = mvMatrixStack.pop();
+    return mvMatrix;
+}
+
+function mvRotate(angle, v) {
+    var inRadians = angle * Math.PI / 180.0;
+
+    var m = Matrix.Rotation(inRadians, $V([v[0], v[1], v[2]])).ensure4x4();
+    multMatrix(m);
+}
+</script>
+</body>
+</html>

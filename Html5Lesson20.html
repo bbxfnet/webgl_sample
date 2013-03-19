@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 20 (CSS shadow)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+        #shadow-example {
+            text-shadow: rgba(64, 64, 64, 0.496094) 6px 7px 5px;
+            -webkit-box-shadow: rgba(0, 0, 128, 0.246094) 8px 6px 3px;
+            -moz-box-shadow: rgba(0, 0, 128, 0.246094) 8px 6px 3px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            width: 300px;
+            height: 200px;
+            padding: 50px;
+            font-size: 35px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>CSS阴影效果</h1>
+
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<div id="content">
+    <div id="shadow-example">
+        CSS阴影效果
+    </div>
+</div>
+<p id="log"></p>
+</body>
+</html>​

@@ -1,0 +1,31 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2006 Google, Inc.
+
+newmtl gdfg1
+Ka 0.000000 0.000000 0.000000
+Kd 0.560784 0.560784 0.560784
+Ks 0.330000 0.330000 0.330000
+
+newmtl ForegroundColor
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl Fabric_Complexion
+Ka 0.000000 0.000000 0.000000
+Kd 0.819608 0.819608 0.819608
+Ks 0.330000 0.330000 0.330000
+map_Kd bigsofa/Fabric_Complexion.jpg
+
+newmtl Carpet_Frieze_Smoke
+Ka 0.000000 0.000000 0.000000
+Kd 0.325490 0.333333 0.352941
+Ks 0.330000 0.330000 0.330000
+map_Kd bigsofa/Carpet_Frieze_Smoke.jpg
+
+newmtl FrontColor
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.330000 0.330000 0.330000
+

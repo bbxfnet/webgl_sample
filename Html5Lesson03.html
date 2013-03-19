@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Html5 Lesson 03 (Browser File API)</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        body {
+            font: 100% "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;
+            margin: 0;
+        }
+
+        #log {
+            background-color: gray;
+            color: white;
+            padding: 10px;
+            margin-left: 20px;
+            display: inline-block;
+        }
+
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+
+        #content,#content1 {
+            padding: 20px;
+            color: #333;
+        }
+
+        input, textarea {
+            font-size: 100%;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>文件API</h1>
+    <div class="arrow-right"></div>
+    <h2>读取文件信息和文件内容</h2>
+</header>
+<div id="content"></div>
+<p><pre id="file-content"></pre></p>
+<p id="log"></p>
+<script>
+    // Content section used alot
+    var content = document.getElementById('content');
+
+    if (!window.FileReader) {
+        content.innerHTML = "<p>你的浏览器不支持文件API</p>";
+    } else {
+        // Page Layout
+        content.innerHTML =
+                '<p>选择或拖动一个文本文件到这儿<br> <input type="file" id="file" /></p>' +
+                        '<ul><li><b>文件名：</b> <span id="name"></span></li>' +
+                        '<li><b>大小（Byte）：</b> <span id="size"></span></li>' +
+                        '<li><b>文件类型：</b> <span id="type"></span></li>' +
+                        '<li><b>最后修改时间：</b> <span id="last"></span></li>' +
+                        '</ul>';
+
+        // Input handler
+        document.getElementById('file').onchange = function() {
+            displayFileMeta(this.files[0]);
+            readFileAsText(this.files[0]);
+        };
+
+        // Drag and drop methods
+        content.ondragover = function(e) {
+            e.preventDefault();
+            return false;
+        };
+        content.ondrop = function(event) {
+            event.stopPropagation();
+            displayFileMeta(event.dataTransfer.files[0]);
+            readFileAsText(event.dataTransfer.files[0]);
+            return false;
+        };
+
+        // Prints out file properties.
+        function displayFileMeta(file) {
+            //console.log(file);
+            document.getElementById('name').textContent = file.name;
+            document.getElementById('size').textContent = file.size;
+            document.getElementById('type').textContent = file.type;
+            document.getElementById('last').textContent = file.lastModifiedDate.toString();
+        }
+
+        function readFileAsText(file) {
+            var reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = function(event) {
+                document.getElementById('file-content').textContent =
+                        event.target.result;
+            };
+            reader.onerror = function() {
+                document.getElementById('file-content').innerHTML = '不能读取文件： ' + file.fileName;
+            };
+        }
+    }
+</script>
+</body>
+</html>​

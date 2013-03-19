@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Convert JavaScript for blog use</title>
+    <script type="text/javascript">
+        function char2Unicode() {
+            var charStr = document.getElementById("charStr").value;
+            var blogUseStr = "<a href=\"#\" onclick=\"document.write(String.fromCharCode(";
+            var unicodeStr = "";
+            for (var i = 0; i < charStr.length; i++) {
+                if (i + 1 == charStr.length) {
+                    unicodeStr = unicodeStr + charStr.charCodeAt(i);
+                } else {
+                    unicodeStr = unicodeStr + charStr.charCodeAt(i) + ",";
+                }
+            }
+            blogUseStr = blogUseStr + unicodeStr + "));document.close();return false;\" >Unicode to Char</a>";
+            document.getElementById("unicodeStr").value = unicodeStr;
+            document.getElementById("blogUseStr").value = blogUseStr;
+        }
+
+        function unicode2Char() {
+            var unicodeStr = document.getElementById("unicodeStr").value;
+            eval("var charStr = String.fromCharCode("+unicodeStr+");");
+            document.getElementById("charStr").value = charStr;
+        }
+    </script>
+</head>
+
+<body>
+String:<textarea id="charStr" rows="10" cols="40"></textarea><br/>
+<input id="char2unicode" type="submit" value="Char to Unicode" onclick=char2Unicode(); /><br/>
+<input id="unicode2char" type="submit" value="Unicode to Char" onclick=unicode2Char(); /><br/>
+Unicode string:<textarea id="unicodeStr" rows="10" cols="40"></textarea><br/>
+Blog use string:<textarea id="blogUseStr" rows="10" cols="40"></textarea><br/>
+</body>
+</html>

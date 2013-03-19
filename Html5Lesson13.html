@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 13 (Selectors API)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>选择器API</h1>
+
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<div class="weekday">
+    <ul>
+        <li>aaa</li>
+        <li>bbb</li>
+        <li>ccc</li>
+    </ul>
+</div>
+<div class="weekday">
+    <ul>
+        <li>ddd</li>
+        <li>eee</li>
+        <li>fff</li>
+    </ul>
+</div>
+<script>
+    // Native getElementsByClassName
+    var els = document.getElementsByClassName('weekday');
+    var i = els.length;
+    while (i--) {
+        els[i].style.backgroundColor = '#ccc';
+    }
+
+    // Finding elements with CSS syntax (Selectors API)
+    els = document.querySelectorAll("ul li:nth-child(odd)");
+    i = els.length;
+    while (i--) {
+        els[i].style.backgroundColor = '#ffa8a8';
+    }
+</script>
+</body>
+</html>​

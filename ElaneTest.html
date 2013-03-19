@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript">
+        function getDateTime() {
+            var b = new Date();
+            var a = b.getTime();
+            return a
+        }
+
+        function syncPost(){
+            var url = 'https://www.elance.com/php/profile/main/takeTestPreview.php?t=' + getDateTime();
+            //var url = "http://127.0.0.1:8080/webgl/Test/Html5Lesson15.html"
+            var xhr = new XMLHttpRequest();
+
+            var length = 0;
+
+            xhr.onreadystatechange = function () {
+
+                if (xhr.readyState === xhr.DONE) {
+
+                    if (xhr.status === 200 || xhr.status === 0) {
+
+                        if (xhr.responseText) {
+                            alert(xhr.responseText);
+
+                            var response = eval('(' + xhr.responseText + ')');
+
+                            if( response.status == 'success' ) {
+                                var t = response.data.ticket;
+                                alert(t)
+                            }
+
+                        } else {
+
+                            console.warn("[" + url + "] seems to be unreachable or file there is empty");
+
+                        }
+
+                    } else {
+
+                        console.error("Couldn't load [" + url + "] [" + xhr.status + "]");
+
+                    }
+
+                } else if (xhr.readyState === xhr.HEADERS_RECEIVED) {
+
+                    length = xhr.getResponseHeader("Content-Length");
+
+                }
+
+            };
+
+            xhr.open("POST", url, true);
+            if (xhr.overrideMimeType) xhr.overrideMimeType("text/plain; charset=gb2312");
+            xhr.setRequestHeader("Content-Type", "text/plain");
+            xhr.send("skill=111&persisid=&from=&proceed=1");
+        }
+
+        function setT(){
+            document.getElementById("t").value = getDateTime();
+            return true;
+        }
+
+    </script>
+</head>
+<body>
+<!--<form id="takeTestForm" action="https://elance.expertrating.com/" method="post">-->
+    <!--<input type="hidden" name="t" id="t" value="">-->
+<!--</form>-->
+<form id="skillInfoForm" action="https://www.elance.com/php/profile/main/takeTestPreview.php" method="post">
+    <input type="text" name="skill" id="skill" value="111">
+    <input type="text" name="persisid" id="persisid" value="">
+    <input type="text" name="from"  id="from" value="">
+    <input type="text" name="t" id="t" value="">
+    <input type="submit" value="Test" onclick="return setT();"/>
+</form>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 11 (Semantic Markup)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+        section { display: block; }
+        section#articles { width: 440px; float: left; padding: 10px; background-color: #fbf0cc; }
+        article > header { text-decoration: underline; margin-bottom: 10px; }
+        aside { float: left; width: 100px; padding: 10px; }
+        footer { overflow: hidden; clear: both; text-align: center; padding: 20px; }
+        nav li { float: left; width: 100px; text-align:center; padding: 10px; color: #fff; }
+        nav ul { list-style: none; overflow: hidden; padding: 0; margin: 0; background-color: #424242; }
+        a { color: #65ac1c; }
+        nav li a { color: #fff; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>语义标注</h1>
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<nav>
+    <ul>
+        <li><a href="#">链接1</a></li>
+        <li><a href="#">链接2</a></li>
+        <li><a href="#">链接3</a></li>
+        <li><a href="#">链接4</a></li>
+    </ul>
+</nav>
+<section id="articles">
+    <article>
+        <header>
+            <h2><a href="#">标题</a></h2>
+        </header>
+        <section>
+            第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节第一节
+        </section>
+    </article>
+    <article>
+        <header>
+            <h2><a href="#">标题</a></h2>
+        </header>
+        <section>
+            第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节第二节
+        </section>
+    </article>
+</section>
+<aside>
+    <h2>Top links</h2>
+    <ul>
+        <li><a ref="external" href="#">链接 1</a></li>
+        <li><a ref="external" href="#">链接 2</a></li>
+        <li><a ref="external" href="#">链接 3</a></li>
+        <li><a ref="external" href="#">链接 4</a></li>
+        <li><a ref="external" href="#">链接 5</a></li>
+    </ul>
+</aside>
+
+<footer>
+    页脚
+</footer>
+</body>
+</html>​

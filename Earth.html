@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>webgl earth</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #61443e;
+            font-family:Monospace;
+            font-size:13px;
+            text-align:center;
+
+            background-color: #aaccff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px; width: 100%;
+            padding: 5px;
+        }
+
+        a {
+
+            color: yellow;
+        }
+
+        #oldie {
+            background:rgb(0,0,50) !important;
+            color:#fff !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<script src="Three.js"></script>
+
+<script src="Detector.js"></script>
+<script src="Stats.js"></script>
+<script>
+
+    if ( ! Detector.webgl ) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById( 'container' ).innerHTML = "";
+
+    }
+
+    var container, stats;
+
+    var camera, controls, scene, renderer;
+
+    var clock = new THREE.Clock();
+
+    var myShader;
+
+    var earthObject;
+
+    init();
+    animate();
+
+    function init() {
+        var myfragmentShader =
+                ["",
+                    "varying highp vec3 pos;",
+                    "void main (void)",
+                    "{",
+                    "//gl_FragColor = vec4(1,0,0,1);",
+                    "}"].join("\n");
+        var myvertexShader =
+                ["uniform highp float time0_1;",
+                    "const highp float PI = 3.141592653589793;",
+                    "highp float R,r,theta, phi;",
+                    "varying highp vec3 pos;",
+                    "void main(void)",
+                    "{",
+                    " pos = position;",
+                    " R = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);",
+                    " r = sqrt(R * R - pos.y * pos.y);",
+                    " theta = 2.0 * PI * time0_1 ;",
+                    " ",
+                    " if(pos.x + 0.01 > r){",
+                    "     phi = 0.0;",
+                    " }else if(pos.x - 0.01 < -r){",
+                    "     phi = PI;",
+                    " }else{",
+                    "     phi = acos(pos.x / r);",
+                    " }",
+                    " if(pos.z < 0.0){",
+                    "     phi = 2.0 * PI - phi;",
+                    " }",
+                    " ",
+                    " pos.x = r * cos(theta + phi);",
+                    " pos.z = r * sin(theta + phi);",
+                    " ",
+                    " if(pos.y + 0.000001 > R){",
+                    "     pos.y = R;",
+                    "     r = 0.0;",
+                    "     pos.x = 0.0;",
+                    "     pos.z = 0.0;",
+                    " }else if(pos.y - 0.000001 < -R){",
+                    "     pos.y = -R;",
+                    "     r = 0.0;",
+                    "     pos.x = 0.0;",
+                    "     pos.z = 0.0;",
+                    " }",
+                    " ",
+                    " gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0); ",
+                    "}"].join("\n");
+
+        container = document.getElementById( 'container' );
+
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2( 0xaaccff, 0.0007 );
+
+        camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
+        camera.position.x = 0;
+        camera.position.y = 50;
+        camera.position.z = 200;
+        scene.add( camera );
+
+        controls = new THREE.FirstPersonControls( camera );
+        controls.movementSpeed = 300;
+        controls.lookSpeed = 0.01
+        controls.lon = 300;
+
+        scene.add( new THREE.AmbientLight( 0xffffff ) );
+
+        myShader = new THREE.ShaderMaterial({uniforms: {"time0_1": { type: "f", value: 0.1 }},fragmentShader : myfragmentShader,vertexShader : myvertexShader});
+        var earth_materials = [
+            myShader,
+            new THREE.MeshLambertMaterial( { ambient: 0xffffff, map: THREE.ImageUtils.loadTexture( 'textures/earth.jpg' ) } ),
+            new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: false, transparent: true, opacity: 0.1 } )
+        ];
+
+        earthObject = THREE.SceneUtils.createMultiMaterialObject( new THREE.SphereGeometry(300,128,64), earth_materials );
+        earthObject.position.set( 400, 0, -400 );
+        scene.add( earthObject );
+
+        var object = new THREE.AxisHelper();
+        object.position.set( -400, 50, 0 );
+        object.scale.x = object.scale.y = object.scale.z = 2;
+        scene.add( object );
+
+        renderer = new THREE.WebGLRenderer( { clearColor: 0xaaccff, clearAlpha: 1 } );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        container.innerHTML = "";
+
+        container.appendChild( renderer.domElement );
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild( stats.domElement );
+    }
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+
+        render();
+        stats.update();
+
+    }
+
+    function render() {
+
+        var delta = clock.getDelta(),
+                time = clock.getElapsedTime() * 10;
+
+        controls.update( delta );
+        var timeLoc = renderer.getContext().getUniformLocation(myShader.program, "time0_1");
+        console.log(renderer.getContext().getUniform(myShader.program,timeLoc));
+        renderer.render( scene, camera );
+        renderer.getContext().useProgram(myShader.program);
+        renderer.getContext().uniform1f(timeLoc,time % 10 / 10);
+        earthObject.rotation.set(0.2, time % 100 / 100 * 2 *3.1415926 ,-0.2);
+    }
+
+</script>
+
+</body>
+</html>

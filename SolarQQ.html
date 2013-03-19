@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>webgl solar system</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #61443e;
+            font-family:Monospace;
+            font-size:13px;
+            text-align:center;
+
+            background-color: #aaccff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px; width: 100%;
+            padding: 5px;
+        }
+
+        a {
+
+            color: yellow;
+        }
+
+        #oldie {
+            background:rgb(0,0,50) !important;
+            color:#fff !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336024306.jpg"></script>
+
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336039846.jpg"></script>
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336039876.jpg"></script>
+<script>
+
+    if ( ! Detector.webgl ) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById( 'container' ).innerHTML = "";
+
+    }
+
+    var container, stats;
+
+    var camera, controls, scene, renderer, projector;
+
+    var mouse = new THREE.Vector2();
+
+    var objects = [], SELECTED;
+
+    var clock = new THREE.Clock();
+
+    var starsArray = ["Sun","Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+    var stars = {
+        Sun:{OrbitTime:99999, RotationTime:99999, Radius:100, InitAngle:0, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016383.png", position:new THREE.Vector3(0, 0, 0),rotaionRadius : 0,desc:""},
+        Mercury:{OrbitTime:87.969, RotationTime:1407.6, Radius:20, InitAngle:30, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016270.png", position:new THREE.Vector3(200, 0, 0),rotaionRadius : 500,desc:""},
+        Venus:{OrbitTime:224.7, RotationTime:243 * 23.9, Radius:30, InitAngle:90, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016343.png", position:new THREE.Vector3(300, 0, 0),rotaionRadius : 600,desc:""},
+        Earth:{OrbitTime:365.25636, RotationTime:23.9, Radius:50, InitAngle:120, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016015.png", position:new THREE.Vector3(400, 0, 0),rotaionRadius : 700,desc:""},
+        Mars:{OrbitTime:687, RotationTime:24.6, Radius:25, InitAngle:250, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016017.png", position:new THREE.Vector3(500, 0, 0),rotaionRadius : 800,desc:""},
+        Jupiter:{OrbitTime:11.86 * 365.25636, RotationTime:9.9, Radius:90, InitAngle:200, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016016.png", position:new THREE.Vector3(700, 0, 0),rotaionRadius : 900,desc:""},
+        Saturn:{OrbitTime:29.5 * 365.25636, RotationTime:10.67, Radius:80, InitAngle:160, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016341.png", position:new THREE.Vector3(900, 0, 0),rotaionRadius : 1000,desc:""},
+        Uranus:{OrbitTime:84 * 365.25636, RotationTime:15.6, Radius:60, InitAngle:270, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016342.png", position:new THREE.Vector3(1000, 0, 0),rotaionRadius : 1100,desc:""},
+        Neptune:{OrbitTime:164.8 * 365.25636, RotationTime:18.4, Radius:55, InitAngle:60, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016271.png", position:new THREE.Vector3(1100, 0, 0),rotaionRadius : 1200,desc:""},
+        Pluto:{OrbitTime:248 * 365.25636, RotationTime:6.38, Radius:10, InitAngle:150, texture:"http://derekliu.blog.51cto.com/attachment/201205/4479510_1336016271.png", position:new THREE.Vector3(1200, 0, 0),rotaionRadius : 1300,desc:""}
+    };
+
+    var earthObject;
+
+    init();
+    animate();
+
+    function init() {
+
+        container = document.getElementById( 'container' );
+
+        scene = new THREE.Scene();
+        //scene.fog = new THREE.FogExp2( 0xaaccff, 0.0007 );
+
+        camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
+        camera.position.x = 0;
+        camera.position.y = 50;
+        camera.position.z = 200;
+        scene.add( camera );
+
+        controls = new THREE.FirstPersonControls( camera );
+        controls.movementSpeed = 300;
+        controls.lookSpeed = 0.01;
+        controls.lon = 300;
+
+        scene.add( new THREE.AmbientLight( 0x777777 ) );
+
+        var sun_light = new THREE.PointLight( 0xffffff,1,3000);
+        sun_light.position.set( 500, 0, 0 );
+        scene.add( sun_light );
+        sun_light = new THREE.PointLight( 0xffffff,1,3000);
+        sun_light.position.set( -500, 0, 0 );
+        scene.add( sun_light );
+        sun_light = new THREE.PointLight( 0xffffff,1,3000);
+        sun_light.position.set( 0, 500, 0 );
+        scene.add( sun_light );
+        sun_light = new THREE.PointLight( 0xffffff,1,3000);
+        sun_light.position.set( 0, -500, 0 );
+        scene.add( sun_light );
+
+        var star,materials,starObject;
+        for(var i=0;i<starsArray.length;i++){
+            eval("star = stars."+starsArray[i]+";");
+            if(starsArray[i] == "Sun"){
+                materials = new THREE.MeshPhongMaterial( { ambient: 0xffffff,specular:0xffffff,shininess:3000, map: THREE.ImageUtils.loadTexture( star.texture ) } );
+            }else{
+                materials = new THREE.MeshLambertMaterial( { ambient: 0xffffff, map: THREE.ImageUtils.loadTexture( star.texture ) } );
+            }
+
+            starObject = new THREE.Mesh( new THREE.SphereGeometry(star.Radius,64,32), materials );
+            starObject.position.set(star.position.x,star.position.y,star.position.z);
+            scene.add( starObject );
+            star.object = starObject;
+            objects.push( starObject );
+
+            var smileyShape = new THREE.Shape();
+            smileyShape.moveTo( 0, 0 );
+            smileyShape.arc( 0, 0, star.rotaionRadius, 0, Math.PI*2, false );
+            var circlePoints = smileyShape.createPointsGeometry(20);
+            var line = new THREE.Line( circlePoints, new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } ) );
+            scene.add( line );
+        }
+
+        var object = new THREE.AxisHelper();
+        object.position.set( 0, 0, 0 );
+        object.scale.x = object.scale.y = object.scale.z = 2;
+        scene.add( object );
+
+        renderer = new THREE.WebGLRenderer( { clearColor: 0x000000, clearAlpha: 1 } );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        container.innerHTML = "";
+
+        container.appendChild( renderer.domElement );
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild( stats.domElement );
+
+        projector = new THREE.Projector();
+        document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+    }
+
+    function onDocumentMouseUp( event ) {
+        event.preventDefault();
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+        var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+        projector.unprojectVector( vector, camera );
+
+        var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+        var intersects = ray.intersectObjects( objects );
+
+        if ( intersects.length > 0 ) {
+
+            SELECTED = intersects[ 0 ].object;
+            var star;
+            for(var i=0;i<starsArray.length;i++){
+                eval("star = stars."+starsArray[i]+";");
+                if(star.object == SELECTED){
+                    alert(starsArray[i]+"\n"+star.desc+"\n"+SELECTED.position.x +"," + SELECTED.position.y + "," + SELECTED.position.z);
+                    break;
+                }
+            }
+        }
+    }
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+
+        render();
+        stats.update();
+
+    }
+
+    function render() {
+
+        var delta = clock.getDelta(),
+                time = clock.getElapsedTime() * 10;
+
+        controls.update( delta );
+        var star;
+        for(var i=0;i<starsArray.length;i++){
+            eval("star = stars."+starsArray[i]+";");
+            //var theta =  time % 1000 / 1000 * 2 *3.1415926;
+            var rotationTheta = 2 * 3.1415926 / star.RotationTime * time ;
+            var orbitTheta = 2 * 3.1415926 / star.OrbitTime * time / 24;
+            var pos = star.object.position;
+            pos.x = star.rotaionRadius * Math.cos(orbitTheta+star.InitAngle);
+            pos.y = star.rotaionRadius * Math.sin(orbitTheta+star.InitAngle);
+            star.object.position.set(pos.x,pos.y,pos.z);
+            star.object.rotation.set(1.5, rotationTheta,0);
+        }
+        renderer.render( scene, camera );
+    }
+
+</script>
+
+</body>
+</html>

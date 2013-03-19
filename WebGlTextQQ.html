@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>WebGL text using a Canvas Texture </title>
+    <meta name="description" content="Render text in WebGL using a canvas texture"/>
+    <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'/>
+</head>
+<body>
+<style>
+    article p {
+        text-indent: 1em;
+    }
+
+    article p.noIndent {
+        text-indent: 0;
+    }
+
+    canvas {
+        margin: 1em 0;
+    }
+
+    .canvasContainer canvas {
+        border: 1px solid #333;
+    }
+
+    .canvasContainer {
+        max-width: 100%;
+        overflow: auto;
+    }
+
+    .canvasText .question {
+        margin: 10px 0;
+        font-family: monospace;
+        overflow: hidden;
+    }
+
+    .canvasText .question label {
+        float: left;
+        width: 200px;
+        font-family: monospace;
+    }
+
+    pre {
+        overflow-x: auto;
+        border: 1px solid #CCC;
+        background: #FFF;
+        padding: 10px;
+    }
+</style>
+<div class="canvasText">
+    <h3><a name="textureGenerator">Texture Generator</a></h3>
+
+    <div class="question">
+        <label>Enforce square texture</label>
+        <input id="squareTexture" type="checkbox" checked="checked"/>
+    </div>
+    <div class="question">
+        <label>Calculated Dimensions</label>
+        <input id="calculatedWidth" disabled="disabled"/>
+        <input id="calculatedHeight" disabled="disabled"/>
+    </div>
+    <div class="question">
+        <label>Text</label>
+        <textarea id="text">derekliu.blog.51cto.com</textarea>
+    </div>
+    <div class="question">
+        <label>Text size (px)</label>
+        <input id="textSize" value="62"/>
+    </div>
+    <div class="question">
+        <label>Font Family</label>
+        <input id="fontFamily" value="monospace"/>
+    </div>
+    <div class="question">
+        <label>Text colour</label>
+        <input id="textColour" value="#333"/>
+    </div>
+    <div class="question">
+        <label>Text Alignment</label>
+        <select id="textAlignment">
+            <option value="left">Left</option>
+            <option value="center" selected="selected">Centre</option>
+            <option value="right">Right</option>
+        </select>
+    </div>
+    <div class="question">
+        <label>Maximum Text Width (px)</label>
+        <input id="maxWidth" value="512"/>
+    </div>
+    <div class="question">
+        <label>Background Colour</label>
+        <input id="backgroundColour" value="#FFF"/>
+    </div>
+    <input type="button" value="Draw Text" onclick="drawText(); initTexture();"/>
+    <!-- Texture Generation Script -->
+    <script type="text/javascript">
+        function isPowerOfTwo(x) {
+            return (x & (x - 1)) == 0;
+        }
+
+        function getPowerOfTwo(x) {
+            --x;
+            for (var i = 1; i < 32; i <<= 1) {
+                x = x | x >> i;
+            }
+            return x + 1;
+        }
+
+        function measureText(ctx, textToMeasure) {
+            return ctx.measureText(textToMeasure).width;
+        }
+
+        function createMultilineText(ctx, textToWrite, maxWidth, text) {
+            textToWrite = textToWrite.replace("\n", " ");
+            var currentText = textToWrite;
+            var futureText;
+            var subWidth = 0;
+            var maxLineWidth = 0;
+
+            var wordArray = textToWrite.split("");
+            var wordsInCurrent, wordArrayLength;
+            wordsInCurrent = wordArrayLength = wordArray.length;
+
+            while (measureText(ctx, currentText) > maxWidth && wordsInCurrent > 1) {
+                wordsInCurrent--;
+                var linebreak = false;
+
+                currentText = futureText = "";
+                for (var i = 0; i < wordArrayLength; i++) {
+                    if (i < wordsInCurrent) {
+                        currentText += wordArray[i];
+//                        if (i+1 < wordsInCurrent) { currentText += " "; }
+                    }
+                    else {
+                        futureText += wordArray[i];
+//                        if( i+1 < wordArrayLength) { futureText += " "; }
+                    }
+                }
+            }
+            text.push(currentText);
+            maxLineWidth = measureText(ctx, currentText);
+
+            if (futureText) {
+                subWidth = createMultilineText(ctx, futureText, maxWidth, text);
+                if (subWidth > maxLineWidth) {
+                    maxLineWidth = subWidth;
+                }
+            }
+
+            return maxLineWidth;
+        }
+
+        var canvas;
+        function drawText() {
+            var canvasX, canvasY;
+            var textX, textY;
+
+            var text = [];
+            var textToWrite = document.getElementById('text').value;
+
+            var maxWidth = parseInt(document.getElementById('maxWidth').value, 10);
+
+            var squareTexture = document.getElementById('squareTexture').checked;
+
+            var textHeight = document.getElementById('textSize').value;
+            var textAlignment = document.getElementById('textAlignment').value;
+            var textColour = document.getElementById('textColour').value;
+            var fontFamily = document.getElementById('fontFamily').value;
+
+            var backgroundColour = document.getElementById('backgroundColour').value;
+
+//            var canvas = document.getElementById('textureCanvas');
+            canvas = document.createElement("canvas");
+            var ctx = canvas.getContext('2d');
+
+            ctx.font = textHeight + "px " + fontFamily;
+            if (maxWidth && measureText(ctx, textToWrite) > maxWidth) {
+                maxWidth = createMultilineText(ctx, textToWrite, maxWidth, text);
+                canvasX = getPowerOfTwo(maxWidth);
+            } else {
+                text.push(textToWrite);
+                canvasX = getPowerOfTwo(ctx.measureText(textToWrite).width);
+            }
+            canvasY = getPowerOfTwo(textHeight * (text.length + 1));
+            if (squareTexture) {
+                (canvasX > canvasY) ? canvasY = canvasX : canvasX = canvasY;
+            }
+            document.getElementById('calculatedWidth').value = canvasX;
+            document.getElementById('calculatedHeight').value = canvasY;
+
+            canvas.width = canvasX;
+            canvas.height = canvasY;
+
+            switch (textAlignment) {
+                case "left":
+                    textX = 0;
+                    break;
+                case "center":
+                    textX = canvasX / 2;
+                    break;
+                case "right":
+                    textX = canvasX;
+                    break;
+            }
+            textY = canvasY / 2;
+
+            ctx.fillStyle = backgroundColour;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            ctx.fillStyle = textColour;
+            ctx.textAlign = textAlignment;
+
+            ctx.textBaseline = 'middle'; // top, middle, bottom
+            ctx.font = textHeight + "px " + fontFamily;
+
+            var offset = (canvasY - textHeight * (text.length + 1)) * 0.5;
+
+            for (var i = 0; i < text.length; i++) {
+                if (text.length > 1) {
+                    textY = (i + 1) * textHeight + offset;
+                }
+                ctx.fillText(text[i], textX, textY);
+            }
+        }
+
+        drawText();
+    </script>
+</div>
+<div class="webglText">
+<canvas id="webglCanvas" style="border: 1px solid #000;" width="500" height="500"></canvas>
+<!-- WebGL Scripts -->
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1337314020.jpg" type="text/javascript"></script>
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1337314011.jpg" type="text/javascript"></script>
+<script id="shader-fs" type="x-shader/x-fragment">
+    varying highp vec2 vTextureCoord;
+
+    uniform highp sampler2D uSampler;
+    varying highp vec3 vLighting;
+
+    void main(void) {
+    highp vec4 texelColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+
+    gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+    }
+</script>
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute highp vec3 aVertexPosition;
+    attribute highp vec3 aVertexNormal;
+    attribute highp vec2 aTextureCoord;
+
+    uniform highp mat4 uNormalMatrix;
+    uniform highp mat4 uMVMatrix;
+    uniform highp mat4 uPMatrix;
+
+    varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
+
+    void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+
+    // Apply lighting effect
+
+    highp vec3 ambientLight = vec3(0.6, 0.6, 0.6);
+    highp vec3 directionalLightColor = vec3(0.5, 0.5, 0.75);
+    highp vec3 directionalVector = vec3(0.85, 0.8, 0.75);
+
+    highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+    highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+    vLighting = ambientLight + (directionalLightColor * directional);
+    }
+</script>
+<script type="text/javascript">
+var gl;
+
+function initGL(canvas) {
+    try {
+        gl = canvas.getContext("experimental-webgl");
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+    } catch (e) {
+    }
+    if (!gl) {
+        alert("Could not initialise WebGL, sorry :-(");
+    }
+}
+
+function getShader(gl, id) {
+    var shaderScript = document.getElementById(id);
+    if (!shaderScript) {
+        return null;
+    }
+
+    var str = "";
+    var k = shaderScript.firstChild;
+    while (k) {
+        if (k.nodeType == 3) {
+            str += k.textContent;
+        }
+        k = k.nextSibling;
+    }
+
+    var shader;
+    if (shaderScript.type == "x-shader/x-fragment") {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+    } else if (shaderScript.type == "x-shader/x-vertex") {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+    } else {
+        return null;
+    }
+
+    gl.shaderSource(shader, str);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert(gl.getShaderInfoLog(shader));
+        return null;
+    }
+
+    return shader;
+}
+
+var shaderProgram;
+
+function initShaders() {
+    var fragmentShader = getShader(gl, "shader-fs");
+    var vertexShader = getShader(gl, "shader-vs");
+
+    shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert("Could not initialise shaders");
+    }
+
+    gl.useProgram(shaderProgram);
+
+    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+    shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+    gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+}
+
+function handleLoadedTexture(texture, textureCanvas) {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    drawText();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureCanvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+var canvasTexture;
+
+function initTexture() {
+    canvasTexture = gl.createTexture();
+    handleLoadedTexture(canvasTexture, canvas);
+}
+
+var mvMatrix = Matrix.I(4);
+var perspectiveMatrix;
+
+var xRot = 0;
+var xSpeed = 10;
+
+var yRot = 0;
+var ySpeed = -10;
+
+var z = -5.0;
+
+var cubeVertexPositionBuffer;
+var cubeVertexNormalBuffer;
+var cubeVertexTextureCoordBuffer;
+var cubeVertexIndexBuffer;
+
+function initBuffers() {
+    cubeVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+    var vertices = [
+        // Front face
+        -1.0, -1.0, 1.0,
+        1.0, -1.0, 1.0,
+        1.0, 1.0, 1.0,
+        -1.0, 1.0, 1.0,
+
+        // Back face
+        -1.0, -1.0, -1.0,
+        -1.0, 1.0, -1.0,
+        1.0, 1.0, -1.0,
+        1.0, -1.0, -1.0,
+
+        // Top face
+        -1.0, 1.0, -1.0,
+        -1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0,
+        1.0, 1.0, -1.0,
+
+        // Bottom face
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0, 1.0,
+        -1.0, -1.0, 1.0,
+
+        // Right face
+        1.0, -1.0, -1.0,
+        1.0, 1.0, -1.0,
+        1.0, 1.0, 1.0,
+        1.0, -1.0, 1.0,
+
+        // Left face
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0, 1.0,
+        -1.0, 1.0, 1.0,
+        -1.0, 1.0, -1.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    cubeVertexPositionBuffer.itemSize = 3;
+    cubeVertexPositionBuffer.numItems = 24;
+
+    cubeVertexNormalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexNormalBuffer);
+    var vertexNormals = [
+        // Front face
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+
+        // Back face
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+
+        // Top face
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+
+        // Bottom face
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+
+        // Right face
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+
+        // Left face
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexNormals), gl.STATIC_DRAW);
+    cubeVertexNormalBuffer.itemSize = 3;
+    cubeVertexNormalBuffer.numItems = 24;
+
+    cubeVertexTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+    var textureCoords = [
+        // Front face
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+
+        // Back face
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+
+        // Top face
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+
+        // Bottom face
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+
+        // Right face
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+
+        // Left face
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
+    cubeVertexTextureCoordBuffer.itemSize = 2;
+    cubeVertexTextureCoordBuffer.numItems = 24;
+
+    cubeVertexIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+    var cubeVertexIndices = [
+        0, 1, 2, 0, 2, 3, // Front face
+        4, 5, 6, 4, 6, 7, // Back face
+        8, 9, 10, 8, 10, 11, // Top face
+        12, 13, 14, 12, 14, 15, // Bottom face
+        16, 17, 18, 16, 18, 19, // Right face
+        20, 21, 22, 20, 22, 23  // Left face
+    ];
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+    cubeVertexIndexBuffer.itemSize = 1;
+    cubeVertexIndexBuffer.numItems = 36;
+}
+
+function drawScene() {
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    perspectiveMatrix = makePerspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
+    loadIdentity();
+    mvTranslate([0.0, 0.0, -6.0]);
+    mvRotate(xRot, [1, 0, 0]);
+    mvRotate(yRot, [0, 1, 0]);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexNormalBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, cubeVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, canvasTexture);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "uSampler"), 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+    setMatrixUniforms();
+    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+}
+
+var lastTime = 0;
+
+function animate() {
+    var timeNow = new Date().getTime();
+    if (lastTime != 0) {
+        var elapsed = timeNow - lastTime;
+
+        xRot += (xSpeed * elapsed) / 1000.0;
+        yRot += (ySpeed * elapsed) / 1000.0;
+    }
+    lastTime = timeNow;
+}
+
+
+function tick() {
+    drawScene();
+    animate();
+}
+
+
+function webGLStart() {
+    var canvas = document.getElementById("webglCanvas");
+    initGL(canvas);
+    initShaders();
+    initBuffers();
+    initTexture();
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    setInterval(tick, 15);
+}
+//
+// Matrix utility functions
+//
+
+function loadIdentity() {
+    mvMatrix = Matrix.I(4);
+}
+
+function multMatrix(m) {
+    mvMatrix = mvMatrix.x(m);
+}
+
+function mvTranslate(v) {
+    multMatrix(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
+}
+
+function setMatrixUniforms() {
+    var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    gl.uniformMatrix4fv(pUniform, false, new Float32Array(perspectiveMatrix.flatten()));
+
+    var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    gl.uniformMatrix4fv(mvUniform, false, new Float32Array(mvMatrix.flatten()));
+
+    var normalMatrix = mvMatrix.inverse();
+    normalMatrix = normalMatrix.transpose();
+    var nUniform = gl.getUniformLocation(shaderProgram, "uNormalMatrix");
+    gl.uniformMatrix4fv(nUniform, false, new Float32Array(normalMatrix.flatten()));
+}
+
+var mvMatrixStack = [];
+
+function mvPushMatrix(m) {
+    if (m) {
+        mvMatrixStack.push(m.dup());
+        mvMatrix = m.dup();
+    } else {
+        mvMatrixStack.push(mvMatrix.dup());
+    }
+}
+
+function mvPopMatrix() {
+    if (!mvMatrixStack.length) {
+        throw("Can't pop from an empty matrix stack.");
+    }
+
+    mvMatrix = mvMatrixStack.pop();
+    return mvMatrix;
+}
+
+function mvRotate(angle, v) {
+    var inRadians = angle * Math.PI / 180.0;
+
+    var m = Matrix.Rotation(inRadians, $V([v[0], v[1], v[2]])).ensure4x4();
+    multMatrix(m);
+}
+
+webGLStart();
+</script>
+</div>
+</article>
+</section>
+</div>
+</body>
+</html>

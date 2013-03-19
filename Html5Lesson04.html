@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Html5 Lesson 04 (Notification)</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        body {
+            font: 100% "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;
+            margin: 0;
+        }
+
+        #log {
+            background-color: gray;
+            color: white;
+            padding: 10px;
+            margin-left: 20px;
+            display: inline-block;
+        }
+
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+
+        #content,#content1 {
+            padding: 20px;
+            color: #333;
+        }
+
+        input, textarea {
+            font-size: 100%;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>通知</h1>
+    <div class="arrow-right"></div>
+    <h2>在桌面右下角通知用户</h2>
+</header>
+<button id="request_permission">首先设置允许这个页面通知</button>
+<button id="show_notification">展示下通知</button>
+<button id="show_html_notification">通知内容为一个URL内容</button>
+<script>
+    document.getElementById('request_permission').addEventListener('click', function() {
+        window.webkitNotifications.requestPermission();
+    }, false);
+
+    document.getElementById('show_notification').addEventListener('click', function() {
+        showNotification();
+    }, false);
+
+    document.getElementById('show_html_notification').addEventListener('click', function() {
+        if (window.webkitNotifications.checkPermission() == 0) {
+            window.webkitNotifications.createHTMLNotification("http://derekliu.blog.51cto.com/").show();
+        } else {
+            alert("请先点击“首先设置允许这个页面通知”");
+        }
+    }, false);
+
+    function showNotification() {
+        var text = '请到http://derekliu.blog.51cto.com/查看博客哦'
+        if (window.webkitNotifications.checkPermission() == 0) {
+            window.webkitNotifications.createNotification('', '重要通知', text).show();
+        } else {
+            alert('请先点击“首先设置允许这个页面通知”');
+        }
+    }
+</script>
+</body>
+</html>​

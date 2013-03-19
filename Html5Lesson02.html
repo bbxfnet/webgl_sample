@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Html5 Lesson 02 (Web Sql Database)</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        body {
+            font: 100% "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;
+            margin: 0;
+        }
+
+        #log {
+            background-color: gray;
+            color: white;
+            padding: 10px;
+            margin-left: 20px;
+            display: inline-block;
+        }
+
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+
+        #content,#content1 {
+            padding: 20px;
+            color: #333;
+        }
+
+        input, textarea {
+            font-size: 100%;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>本地Sql数据库</h1>
+    <div class="arrow-right"></div>
+    <h2>把数据存储在本地Sql数据库里面</h2>
+</header>
+<div id="content"></div>
+<p id="log"></p>
+<script>
+    document.getElementById('content').innerHTML =
+                    '<ul id="results"></ul>' +
+                    '<button onclick="newRecord()">加条记录</button>' +
+                    '<button onclick="createTable()">建表【Table1Test】</button>' +
+                    '<button onclick="dropTable()">删表【Table1Test】</button>';
+
+    var db;
+    var log = document.getElementById('log');
+    db = openDatabase("DBTest", "1.0", "HTML5 Database API example", 200000);
+    showRecords();
+    document.getElementById('results').addEventListener('click', function (e) {
+        e.preventDefault();
+    }, false);
+
+    function onError(tx, error) {
+        log.innerHTML = '<p>' + error.message + '</p>';
+    }
+
+    // select all records and display them
+    function showRecords() {
+        document.getElementById('results').innerHTML = '';
+        db.transaction(function (tx) {
+            tx.executeSql("SELECT * FROM Table1Test", [], function (tx, result) {
+                for (var i = 0, item = null; i < result.rows.length; i++) {
+                    item = result.rows.item(i);
+                    document.getElementById('results').innerHTML +=
+                            '<li>字段[text]:<span contenteditable="true" onkeyup="updateRecord(' + item['id'] + ', this)">' +
+                                    item['text'] + '</span> <a href="#" onclick="deleteRecord(' + item['id'] + ')">删除</a></li>';
+                }
+            });
+        });
+    }
+
+    function createTable() {
+        db.transaction(function (tx) {
+            tx.executeSql("CREATE TABLE Table1Test (id REAL UNIQUE, text TEXT)", [],
+                    function (tx) {
+                        log.innerHTML = 'Table1Test 成功创建'
+                    },
+                    onError);
+        });
+    }
+
+    // add record with random values
+    function newRecord() {
+        var num = Math.round(Math.random() * 10000); // random data
+        db.transaction(function (tx) {
+            tx.executeSql("INSERT INTO Table1Test (id, text) VALUES (?, ?)", [num, '单击这儿开始修改'],
+                    function (tx, result) {
+                        log.innerHTML = '记录'+num+'成功添加';
+                        showRecords();
+                    },
+                    onError);
+        });
+    }
+
+    function updateRecord(id, textEl) {
+        db.transaction(function (tx) {
+            tx.executeSql("UPDATE Table1Test SET text = ? WHERE id = ?", [textEl.innerHTML, id], null, onError);
+        });
+    }
+
+    function deleteRecord(id) {
+        db.transaction(function (tx) {
+            tx.executeSql("DELETE FROM Table1Test WHERE id=?", [id],
+                    function (tx, result) {
+                        log.innerHTML = '记录'+id+'成功删除';
+                        showRecords()
+                    },
+                    onError);
+        });
+    }
+
+    // delete table from db
+    function dropTable() {
+        db.transaction(function (tx) {
+            tx.executeSql("DROP TABLE Table1Test", [],
+                    function (tx) {
+                        log.innerHTML = 'Table1Test成功删除';
+                        showRecords()
+                    },
+                    onError);
+        });
+    }
+</script>
+</body>
+</html>​

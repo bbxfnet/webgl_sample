@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>webgl collision check</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #61443e;
+            font-family: Monospace;
+            font-size: 13px;
+            text-align: center;
+
+            background-color: #aaccff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        a {
+
+            color: yellow;
+        }
+
+        #oldie {
+            background: rgb(0, 0, 50) !important;
+            color: #fff !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<script src="Three.js"></script>
+
+<script src="Detector.js"></script>
+<script src="Stats.js"></script>
+<script>
+
+    if (!Detector.webgl) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById('container').innerHTML = "";
+
+    }
+
+    var container, stats;
+
+    var camera, controls, scene, renderer;
+
+    var clock = new THREE.Clock();
+
+    var wallArray = ["LeftWall", "RightWall", "FrontWall", "BackWall", "Celling", "Floor"];
+//    var wallArray = ["Floor"];
+    var walls = {
+        LeftWall:{Position:new THREE.Vector3(10, 300, -300), texture:"textures/wall.png", Size:new THREE.Vector3(20, 600, 600)},
+        RightWall:{Position:new THREE.Vector3(590, 300, -300), texture:"textures/wall.png", Size:new THREE.Vector3(20, 600, 600)},
+        FrontWall:{Position:new THREE.Vector3(300, 300, -590), texture:"textures/wall.png", Size:new THREE.Vector3(560, 600, 20)},
+        BackWall:{Position:new THREE.Vector3(300, 300, -10), texture:"textures/wall.png", Size:new THREE.Vector3(560, 600, 20)},
+        Celling:{Position:new THREE.Vector3(300, 590, -300), texture:"textures/celling.jpg", Size:new THREE.Vector3(560, 20, 560)},
+        Floor:{Position:new THREE.Vector3(300, 10, -300), texture:"textures/floor.png", Size:new THREE.Vector3(560, 20, 560)}
+    };
+    var cylinderArray = ["LieCylinder", "UpCylinder", "SlantedCylinder"];
+    var cylinders = {
+        LieCylinder:{Position:new THREE.Vector3(150, 25, -300), texture:"textures/grass.png", Size:new THREE.Vector3(50, 50, 900), Rotate:new THREE.Vector3(1.57, 0, 0)},
+        UpCylinder:{Position:new THREE.Vector3(300, 300, -300), texture:"textures/grass.png", Size:new THREE.Vector3(40, 40, 900), Rotate:new THREE.Vector3(0, 0, 0)},
+        SlantedCylinder:{Position:new THREE.Vector3(400, 300, -200), texture:"textures/grass.png", Size:new THREE.Vector3(60, 60, 900), Rotate:new THREE.Vector3(0.75, 0.75, 0.75)}
+    };
+    var ballArray = [
+//        {Position:new THREE.Vector3(50, 550, -50), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(40, -20, 40), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(250, 550, -50), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(30, 10, 0), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(450, 550, -50), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(50, -10, 10), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(50, 550, -250), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(10, 30, 0), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(250, 550, -250), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(30, -10, 10), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(450, 550, -250), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(10, 10, 30), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(50, 550, -450), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(60, 20, 40), Acell:new THREE.Vector3(0, 0, 0)},
+//        {Position:new THREE.Vector3(250, 550, -450), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(20, -60, 40), Acell:new THREE.Vector3(0, 0, 0)},
+        {Position:new THREE.Vector3(450, 450, -450), Radius:20, texture:"textures/carpet.png", Veloc:new THREE.Vector3(40, -50, 50), Acell:new THREE.Vector3(0, 0, 0)}
+    ];
+    var objects = [],lines = [];
+
+    init();
+    animate();
+
+    function init() {
+
+        container = document.getElementById('container');
+
+        scene = new THREE.Scene();
+        //scene.fog = new THREE.FogExp2( 0xaaccff, 0.0007 );
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+        camera.position.x = 0;
+        camera.position.y = 50;
+        camera.position.z = 200;
+        scene.add(camera);
+
+        controls = new THREE.FirstPersonControls(camera);
+        controls.movementSpeed = 300;
+        controls.lookSpeed = 0.01;
+        controls.lon = 300;
+
+        scene.add(new THREE.AmbientLight(0xffffff));
+
+        var wall, materials, wallobject;
+        for (var i = 0; i < wallArray.length; i++) {
+            eval("wall = walls." + wallArray[i] + ";");
+            //materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, transparent:true, map:THREE.ImageUtils.loadTexture(wall.texture) });
+            materials = new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, transparent: true, opacity: 0.1 } );
+
+            wallobject = new THREE.Mesh(new THREE.CubeGeometry(wall.Size.x, wall.Size.y, wall.Size.z, wall.Size.x / 10, wall.Size.y / 10, wall.Size.z / 10), materials);
+            wallobject.position.set(wall.Position.x, wall.Position.y, wall.Position.z);
+            wallobject.doubleSided = true;
+            scene.add(wallobject);
+            wall.object = wallobject;
+            objects.push(wallobject);
+        }
+        var cylinder, cylinderobject;
+        for (var i = 0; i < cylinderArray.length; i++) {
+            eval("cylinder = cylinders." + cylinderArray[i] + ";");
+            //materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, map:THREE.ImageUtils.loadTexture(cylinder.texture) });
+            materials = new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, transparent: true, opacity: 0.1 } );
+
+            cylinderobject = new THREE.Mesh(new THREE.CylinderGeometry(cylinder.Size.x, cylinder.Size.y, cylinder.Size.z, cylinder.Size.x, cylinder.Size.z, false), materials);
+            cylinderobject.position.set(cylinder.Position.x, cylinder.Position.y, cylinder.Position.z);
+            cylinderobject.rotation.set(cylinder.Rotate.x, cylinder.Rotate.y, cylinder.Rotate.z);
+            scene.add(cylinderobject);
+            cylinder.object = cylinderobject;
+            objects.push(cylinderobject);
+        }
+        var ball, ballObject;
+        for (var i = 0; i < ballArray.length; i++) {
+            ball = ballArray[i];
+            materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, map:THREE.ImageUtils.loadTexture(ball.texture) });
+
+            ballObject = new THREE.Mesh(new THREE.SphereGeometry(ball.Radius, 64, 32), materials);
+            ballObject.position.set(ball.Position.x, ball.Position.y, ball.Position.z);
+            scene.add(ballObject);
+            ball.object = ballObject;
+        }
+
+        var object = new THREE.AxisHelper();
+        object.position.set(0, 0, 0);
+        object.scale.x = object.scale.y = object.scale.z = 2;
+        scene.add(object);
+
+        renderer = new THREE.WebGLRenderer({ clearColor:0x000000, clearAlpha:1 });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        container.innerHTML = "";
+
+        container.appendChild(renderer.domElement);
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild(stats.domElement);
+    }
+
+    function animate() {
+
+        requestAnimationFrame(animate);
+
+        render();
+        stats.update();
+
+    }
+
+    function setBallPosition(ball, deltaTime) {
+//        console.log("old ball.Position=("+ball.Position.x+","+ball.Position.y+","+ball.Position.z+"),Vec=("+ball.Veloc.x+","+ball.Veloc.y+","+ball.Veloc.z+")");
+//        if(ball.Position.y < - ball.Veloc.y + 20){
+//            console.log("break;");
+//        }
+        var ray = new THREE.Ray(ball.Position.clone(), ball.Veloc.clone().normalize());
+        var intersects = ray.intersectObjects(objects);
+
+        if (intersects.length > 0) {
+            var intersectsTemp = [];
+            for(var i = 0;i<intersects.length;i++){
+                var has = false;
+                var normal = intersects[i].face.normal.clone().normalize();
+                if(normal.clone().dot(ball.Veloc.clone().normalize()) > 0){
+                    has = true;
+                }
+                for(var j=0;j<intersectsTemp.length;j++){
+                    if(intersectsTemp[j].face.normal.x == intersects[i].face.normal.x && intersectsTemp[j].face.normal.y == intersects[i].face.normal.y && intersectsTemp[j].face.normal.z == intersects[i].face.normal.z){
+                        has = true;
+                    }
+                    if(intersectsTemp[j].distance != intersects[i].distance){
+                        has = true;
+                    }
+                }
+                if(!has){
+                    intersectsTemp.push(intersects[i]);
+                }
+            }
+            intersects = intersectsTemp;
+
+            var intersect = intersects[ 0 ];
+            var distance = intersect.distance;
+            var point = intersect.point;
+            var distanceNew = ((ball.Veloc.clone().multiplyScalar(deltaTime)).addSelf(ball.Acell.clone().multiplyScalar(deltaTime * deltaTime / 2))).distanceTo(ball.Position.clone());
+
+            if (distance - ball.Radius < distanceNew) {
+                var vl = ball.Veloc.clone().length();
+                var vtpow2 = 2 * ball.Acell.clone().dot(ball.Veloc.clone().normalize()) * (distance - ball.Radius) + vl * vl;
+                var vt;
+                if (vtpow2 > 0) {
+                    vt = Math.sqrt(vtpow2);
+                } else {
+                    vt = 0;
+                }
+
+                var vi = ball.Veloc.clone().normalize();
+                var vri = new THREE.Vector3(0,0,0);
+                var vria = vi.clone();
+                for(var i = 0;i<intersects.length;i++){
+                    var normal = intersects[i].face.normal.clone().normalize();
+                    if(normal.clone().dot(vi.clone()) > 0){
+                        continue;
+                    }
+                    var normali = normal.clone().multiplyScalar(-2 * normal.clone().dot(vria.clone()));
+                    vri = normali.addSelf(vria.clone()).normalize();
+                    vria = vri.clone();
+//                    console.log("Cylinder=("+intersects[i].object.rotation.x+","+intersects[i].object.rotation.y+","+intersects[i].object.rotation.z+")");
+                }
+
+                var vr = vri.clone().multiplyScalar(vt);
+                //console.log("Vl=" + vl + ",Vt=" + vt + ",Vr=" + vr.clone().length() + ",distance=" + distance);
+
+                ball.Veloc = vr;
+
+                ball.Position = point.clone().addSelf(vri.multiplyScalar(1));
+                var ray1 = new THREE.Ray(ball.Position.clone(), ball.Veloc.clone().normalize());
+                var intersects1 = ray1.intersectObjects(objects);
+                if(intersects1.length > 0){
+                    var intersect1 = intersects1[ 0 ];
+                    var distance1 = intersect1.distance;
+                    var distanceNew1 = ball.Veloc.clone().length() * deltaTime;
+                    if (distance1 - ball.Radius < distanceNew1) {
+                        setBallPosition(ball, deltaTime);
+                    }else{
+                        ball.Position = point.clone().addSelf(vri.multiplyScalar(ball.Radius));
+                    }
+                }else{
+                    ball.Position = point.clone().addSelf(vri.multiplyScalar(ball.Radius));
+                }
+            } else {
+                ball.Position.addSelf((ball.Veloc.clone().multiplyScalar(deltaTime)).addSelf(ball.Acell.clone().multiplyScalar(deltaTime * deltaTime / 2)));
+                ball.Veloc.addSelf(ball.Acell.clone().multiplyScalar(deltaTime));
+            }
+        } else {
+            ball.Position.addSelf((ball.Veloc.clone().multiplyScalar(deltaTime)).addSelf(ball.Acell.clone().multiplyScalar(deltaTime * deltaTime / 2)));
+            ball.Veloc.addSelf(ball.Acell.clone().multiplyScalar(deltaTime));
+        }
+//        console.log("new ball.Position=("+ball.Position.x+","+ball.Position.y+","+ball.Position.z+"),Vec=("+ball.Veloc.x+","+ball.Veloc.y+","+ball.Veloc.z+")");
+        var lineGeometry = new THREE.Geometry();
+        lineGeometry.vertices.push( new THREE.Vertex( new THREE.Vector3(ball.object.position.x,ball.object.position.y,ball.object.position.z)) );
+        lineGeometry.vertices.push( new THREE.Vertex( new THREE.Vector3(ball.Position.x, ball.Position.y, ball.Position.z) ) );
+        var line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0xff0000 } ) );
+        line.addTime = clock.getElapsedTime() * 10;
+        lines.push(line);
+        scene.add(line);
+        for(var i = 0; i < lines.length; i++){
+            var l = lines[i];
+            if(l.addTime + 20 < clock.getElapsedTime() * 10){
+                scene.remove(l);
+                lines.splice(i,1);
+            }
+        }
+        ball.object.position.set(ball.Position.x, ball.Position.y, ball.Position.z);
+    }
+
+    function render() {
+
+        var delta = clock.getDelta(),
+                time = clock.getElapsedTime() * 10;
+
+        controls.update(delta);
+        var deltaTime = 0.5;
+        for (var i = 0; i < ballArray.length; i++) {
+            var ball = ballArray[i];
+//            ball.Position.set(30,30,-100);
+//            ball.Veloc.set(-80,-70,0);
+            setBallPosition(ball, deltaTime);
+        }
+        renderer.render(scene, camera);
+    }
+
+</script>
+
+</body>
+</html>

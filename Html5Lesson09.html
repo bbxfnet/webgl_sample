@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Html5 Lesson 09 (Canvas 2D)</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <style>
+        header {
+            background: #FFCC99;
+            color: white;
+            -moz-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            -webkit-box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            box-shadow: 0 2px 8px -3px rgba(0, 0, 0, .5), 0 1.4em 2em -0.7em rgba(255, 255, 255, .2) inset;
+            text-shadow: 1px 1px 1px #444;
+        }
+
+        header h1, header h2 {
+            display: inline-block;
+            padding: 12px 15px;
+            font-size: 105%;
+            line-height: 1;
+            margin: 0;
+        }
+
+        header h1 {
+            background: #FF9966;
+        }
+
+        .arrow-right {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-left: 18px solid #FF9966;
+            margin-bottom: -11px;
+        }
+        #drag-zone {
+            list-style: none;
+            float: left;
+        }
+
+        #drag-zone li * {
+            border: 4px solid #888;
+            display: block;
+            margin: 10px 0;
+        }
+
+        #drag-zone, #drop-zone, #drop-data {
+            width: 20%;
+        }
+
+        #drop-zone, #drop-data {
+            padding: 40px;
+            border: 5px solid #888;
+            float: right;
+            height: 240px;
+            overflow: auto;
+        }
+
+        #drop-zone.hovering {
+            border: 5px solid #aaa;
+            background-color: rgba(255, 0, 0, 0.199219);
+        }
+
+        #drop-data {
+            background-color: #eee;
+            font-family: Monospace;
+            -ms-word-wrap: break-word;
+            word-wrap: break-word;
+        }
+
+        .datatypes {
+            font-weight: bold;
+        }
+
+        .draggable-text {
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>2D画布</h1>
+    <div class="arrow-right"></div>
+    <h2></h2>
+</header>
+<canvas id="paint_area" width="800" height="600"></canvas>
+<script>
+    var ctx = document.getElementById('paint_area').getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,800,600);
+
+    ctx.rotate(.2);
+    var img_buffer = document.createElement('img');
+    img_buffer.src = 'http://derekliu.blog.51cto.com/album/4479510/133601723593.png';
+    img_buffer.onload = function() { ctx.drawImage(img_buffer,50,0,100,100); }
+
+    /* this is only for mouse interaction */
+    var down = false;
+    ctx.canvas.addEventListener('mousedown', function() { down = true; }, false);
+    ctx.canvas.addEventListener('mouseup', function() { down = false; }, false);
+    ctx.canvas.addEventListener('mousemove', function(event) {
+        if (down) {
+            //ctx.translate(0,-50);
+            ctx.drawImage(img_buffer, event.clientX - this.offsetLeft,
+                    event.clientY - this.offsetTop,100,100);
+            //ctx.translate(0,50);
+        }
+    }, false);
+</script>
+</body>
+</html>​

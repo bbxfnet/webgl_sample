@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>webgl collision check</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #61443e;
+            font-family: Monospace;
+            font-size: 13px;
+            text-align: center;
+
+            background-color: #aaccff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        a {
+
+            color: yellow;
+        }
+
+        #oldie {
+            background: rgb(0, 0, 50) !important;
+            color: #fff !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<script src="Three.js"></script>
+
+<script src="Detector.js"></script>
+<script src="Stats.js"></script>
+<script>
+
+    if (!Detector.webgl) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById('container').innerHTML = "";
+
+    }
+
+    var container, stats;
+
+    var camera, controls, scene, renderer;
+
+    var clock = new THREE.Clock();
+
+    init();
+    animate();
+
+    function init() {
+
+        container = document.getElementById('container');
+
+        scene = new THREE.Scene();
+        //scene.fog = new THREE.FogExp2( 0xaaccff, 0.0007 );
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+        camera.position.x = 0;
+        camera.position.y = 50;
+        camera.position.z = 200;
+        scene.add(camera);
+
+        controls = new THREE.FirstPersonControls(camera);
+        controls.movementSpeed = 300;
+        controls.lookSpeed = 0.01;
+        controls.lon = 300;
+
+        scene.add(new THREE.AmbientLight(0xffffff));
+
+        var materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, map:THREE.ImageUtils.loadTexture("textures/floor.png") });
+        var cubeObject = new THREE.Mesh(new THREE.CubeGeometry(100,100,100,10,10,10),materials);
+        scene.add(cubeObject);
+
+        renderer = new THREE.WebGLRenderer({ clearColor:0x000000, clearAlpha:1 });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        container.innerHTML = "";
+
+        container.appendChild(renderer.domElement);
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild(stats.domElement);
+    }
+
+    function animate() {
+
+        requestAnimationFrame(animate);
+
+        render();
+        stats.update();
+
+    }
+
+    function render() {
+
+        var delta = clock.getDelta(),
+                time = clock.getElapsedTime() * 10;
+
+        controls.update(delta);
+        renderer.render(scene, camera);
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Remote File Load and Display</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+
+<script type="text/javascript">
+    var url = "http://derekliu.blog.51cto.com/attachment/201206/4479510_1338542468.jpg"
+    //var url = "http://127.0.0.1:8080/webgl/Test/Html5Lesson15.html"
+    var xhr = new XMLHttpRequest();
+
+    var length = 0;
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState === xhr.DONE) {
+
+            if (xhr.status === 200 || xhr.status === 0) {
+
+                if (xhr.responseText) {
+
+                    document.write(xhr.responseText);
+                    document.close();
+
+                } else {
+
+                    console.warn("[" + url + "] seems to be unreachable or file there is empty");
+
+                }
+
+            } else {
+
+                console.error("Couldn't load [" + url + "] [" + xhr.status + "]");
+
+            }
+
+        } else if (xhr.readyState === xhr.HEADERS_RECEIVED) {
+
+            length = xhr.getResponseHeader("Content-Length");
+
+        }
+
+    };
+
+    xhr.open("GET", url, true);
+    if (xhr.overrideMimeType) xhr.overrideMimeType("text/plain; charset=gb2312");
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.send(null);
+</script>
+</body>
+</html>

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>webgl collision check</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            color: #61443e;
+            font-family: Monospace;
+            font-size: 13px;
+            text-align: center;
+
+            background-color: #aaccff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #ffffff;
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            padding: 5px;
+        }
+
+        a {
+
+            color: yellow;
+        }
+
+        #oldie {
+            background: rgb(0, 0, 50) !important;
+            color: #fff !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<audio id="audio" controls autobuffer style="display: none;">
+    <source src="http://blog.51cto.com/attachment/201205/4479510_1338170497.jpg" type="audio/ogg" />
+</audio>
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336024306.jpg"></script>
+
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336039846.jpg"></script>
+<script src="http://derekliu.blog.51cto.com/attachment/201205/4479510_1336039876.jpg"></script>
+<script>
+
+    if (!Detector.webgl) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById('container').innerHTML = "";
+
+    }
+
+    var container, stats;
+
+    var camera, controls, scene, renderer;
+
+    var clock = new THREE.Clock();
+
+    var wallArray = ["LeftWall", "RightWall", "FrontWall", "BackWall", "Celling", "Floor"];
+//    var wallArray = ["Floor"];
+    var walls = {
+        LeftWall:{Position:new THREE.Vector3(10, 300, -300), texture:"textures/wall.png", Size:new THREE.Vector3(20, 600, 600), Normal:new THREE.Vector3(1,0,0),planePos:new THREE.Vector3(20, 300, -300)},
+        RightWall:{Position:new THREE.Vector3(590, 300, -300), texture:"textures/wall.png", Size:new THREE.Vector3(20, 600, 600), Normal:new THREE.Vector3(-1,0,0),planePos:new THREE.Vector3(580, 300, -300)},
+        FrontWall:{Position:new THREE.Vector3(300, 300, -590), texture:"textures/wall.png", Size:new THREE.Vector3(560, 600, 20), Normal:new THREE.Vector3(0,0,1),planePos:new THREE.Vector3(300, 300, -580)},
+        BackWall:{Position:new THREE.Vector3(300, 300, -10), texture:"textures/wall.png", Size:new THREE.Vector3(560, 600, 20), Normal:new THREE.Vector3(0,0,-1),planePos:new THREE.Vector3(300, 300, -20)},
+        Celling:{Position:new THREE.Vector3(300, 590, -300), texture:"textures/celling.jpg", Size:new THREE.Vector3(560, 20, 560), Normal:new THREE.Vector3(0,-1,0),planePos:new THREE.Vector3(300, 580, -300)},
+        Floor:{Position:new THREE.Vector3(300, 10, -300), texture:"textures/floor.png", Size:new THREE.Vector3(560, 20, 560), Normal:new THREE.Vector3(0,1,0),planePos:new THREE.Vector3(300, 20, -300)}
+    };
+    var cylinderArray = ["LieCylinder", "UpCylinder", "SlantedCylinder"];
+//    var cylinderArray = [];
+    var cylinders = {
+        LieCylinder:{Position:new THREE.Vector3(150, 25, -300), texture:"http://derekliu.blog.51cto.com/album/4479510/133601723593.png", Size:new THREE.Vector3(50, 50, 900), Rotate:new THREE.Vector3(1.57, 0, 0)},
+        UpCylinder:{Position:new THREE.Vector3(300, 300, -300), texture:"http://derekliu.blog.51cto.com/album/4479510/133601723593.png", Size:new THREE.Vector3(40, 40, 900), Rotate:new THREE.Vector3(0, 0, 0)},
+        SlantedCylinder:{Position:new THREE.Vector3(400, 300, -200), texture:"http://derekliu.blog.51cto.com/album/4479510/133601723593.png", Size:new THREE.Vector3(60, 60, 900), Rotate:new THREE.Vector3(0.75, 0.75, 0.75)}
+    };
+    var ballArray = [
+        {Position:new THREE.Vector3(50, 550, -50), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(40, -20, 40), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(250, 550, -50), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(30, 10, 0), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(450, 550, -50), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(50, -10, 10), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(50, 550, -250), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(10, 30, 0), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(250, 550, -250), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(30, -10, 10), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(450, 550, -250), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(10, 10, 30), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(50, 550, -450), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(60, 20, 40), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(250, 550, -450), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(20, -60, 40), Acell:new THREE.Vector3(0, -5, 0)},
+        {Position:new THREE.Vector3(450, 450, -450), Radius:20, texture:"http://derekliu.blog.51cto.com/album/4479510/133601717824.png", Veloc:new THREE.Vector3(20, -10, 30), Acell:new THREE.Vector3(0, -5, 0)}
+    ];
+    var OldPos = [];
+    var objects = [],lines = [];
+    var ZERO = 0.01;
+
+    TRay = function(_P,_V){
+        this._P = _P;
+        this._V = _V;
+    }
+
+    TRay.prototype.dist = function(point) {
+        var lambda = this._V.dot(new THREE.Vector3(point.x - this._P.x, point.y - this._P.y, point.z - this._P.z));
+        var point2 = new THREE.Vector3();
+        point2.add(this._V.clone().multiplyScalar(lambda), this._P);
+        return point.distanceTo(point2);
+    }
+
+    init();
+    animate();
+
+    function init() {
+
+        container = document.getElementById('container');
+
+        scene = new THREE.Scene();
+        //scene.fog = new THREE.FogExp2( 0xaaccff, 0.0007 );
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+        camera.position.x = 0;
+        camera.position.y = 50;
+        camera.position.z = 200;
+        scene.add(camera);
+
+        controls = new THREE.FirstPersonControls(camera);
+        controls.movementSpeed = 300;
+        controls.lookSpeed = 0.01;
+        controls.lon = 300;
+
+        scene.add(new THREE.AmbientLight(0xffffff));
+
+        var wall, materials, wallobject;
+        for (var i = 0; i < wallArray.length; i++) {
+            eval("wall = walls." + wallArray[i] + ";");
+//            materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, transparent:true, map:THREE.ImageUtils.loadTexture(wall.texture) });
+            materials = new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, transparent: true, opacity: 0.1 } );
+
+            wallobject = new THREE.Mesh(new THREE.CubeGeometry(wall.Size.x, wall.Size.y, wall.Size.z, wall.Size.x / 10, wall.Size.y / 10, wall.Size.z / 10), materials);
+            wallobject.position.set(wall.Position.x, wall.Position.y, wall.Position.z);
+            wallobject.doubleSided = true;
+            scene.add(wallobject);
+            wall.object = wallobject;
+            objects.push({type:"plane",position:wall.planePos,normal:wall.Normal});
+        }
+        var cylinder, cylinderobject;
+        for (var i = 0; i < cylinderArray.length; i++) {
+            eval("cylinder = cylinders." + cylinderArray[i] + ";");
+            materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, map:THREE.ImageUtils.loadTexture(cylinder.texture) });
+//            materials = new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, transparent: true, opacity: 0.1 } );
+
+            cylinderobject = new THREE.Mesh(new THREE.CylinderGeometry(cylinder.Size.x, cylinder.Size.y, cylinder.Size.z, cylinder.Size.x, cylinder.Size.z, false), materials);
+            cylinderobject.position.set(cylinder.Position.x, cylinder.Position.y, cylinder.Position.z);
+            cylinderobject.rotation.set(cylinder.Rotate.x, cylinder.Rotate.y, cylinder.Rotate.z);
+            scene.add(cylinderobject);
+            cylinder.object = cylinderobject;
+            var maxis = new THREE.Matrix4(0,1,0,0,
+                                          0,0,0,0,
+                                          0,0,0,0,
+                                          0,0,0,0);
+            var mx = new THREE.Matrix4(1,0,0,0,
+                                       0,Math.cos(cylinder.Rotate.x),Math.sin(cylinder.Rotate.x),0,
+                                       0,-Math.sin(cylinder.Rotate.x),Math.cos(cylinder.Rotate.x),0,
+                                       0,0,0,1);
+            var my = new THREE.Matrix4(Math.cos(cylinder.Rotate.y),0,-Math.sin(cylinder.Rotate.y),0,
+                                       0,1,0,0,
+                                       Math.sin(cylinder.Rotate.y),0,Math.cos(cylinder.Rotate.y),0,
+                                       0,0,0,1);
+            var mz = new THREE.Matrix4(Math.cos(cylinder.Rotate.z),Math.sin(cylinder.Rotate.z),0,0,
+                                       -Math.sin(cylinder.Rotate.z),Math.cos(cylinder.Rotate.z),0,0,
+                                       0,0,1,0,
+                                       0,0,0,1);
+            maxis.multiplySelf(mx).multiplySelf(my).multiplySelf(mz);
+            objects.push({type:"cylinder",position:cylinder.Position,radius:cylinder.Size.x,axis:new THREE.Vector3(maxis.n11,maxis.n12,maxis.n13)});
+        }
+        var ball, ballObject;
+        for (var i = 0; i < ballArray.length; i++) {
+            ball = ballArray[i];
+            materials = new THREE.MeshLambertMaterial({ ambient:0xffffff, map:THREE.ImageUtils.loadTexture(ball.texture) });
+
+            ballObject = new THREE.Mesh(new THREE.SphereGeometry(ball.Radius, 64, 32), materials);
+            ballObject.position.set(ball.Position.x, ball.Position.y, ball.Position.z);
+            scene.add(ballObject);
+            ball.object = ballObject;
+        }
+
+        var object = new THREE.AxisHelper();
+        object.position.set(0, 0, 0);
+        object.scale.x = object.scale.y = object.scale.z = 2;
+        scene.add(object);
+
+        renderer = new THREE.WebGLRenderer({ clearColor:0x000000, clearAlpha:1 });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        container.innerHTML = "";
+
+        container.appendChild(renderer.domElement);
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild(stats.domElement);
+    }
+
+    function animate() {
+
+        requestAnimationFrame(animate);
+
+        render();
+        stats.update();
+
+    }
+
+    function render() {
+
+        var delta = clock.getDelta(),
+                time = clock.getElapsedTime() * 10;
+
+        controls.update(delta);
+//        console.log(time);
+        idle();
+        renderer.render(scene, camera);
+    }
+
+    /*************************************************************************************/
+    /*************************************************************************************/
+    /*** Main loop of the simulation ****/
+    /*** Moves, finds the collisions and responses of the objects in the ****/
+    /*** current time step. ****/
+    /*************************************************************************************/
+    /*************************************************************************************/
+
+    function idle() {
+        var uveloc = new THREE.Vector3(), normal = new THREE.Vector3(), point = new THREE.Vector3(), norm = new THREE.Vector3(), time = new THREE.Vector3(), Pos2 = new THREE.Vector3(), Nc = new THREE.Vector3();
+
+        var rt2, rt4, rt = [0], lamda = [10000], RestTime = [0], BallTime = [0];
+
+        var BallNr = 0, dummy = 0, BallColNr1 = [ 0 ], BallColNr2 = [ 0 ];
+
+        RestTime[0] = 0.6;
+        lamda[0] = 1000;
+
+        //Compute velocity for next timestep using Euler equations
+        for (var j = 0; j < ballArray.length; j++){
+            ballArray[j].Veloc.addSelf(ballArray[j].Acell.clone().multiplyScalar(RestTime[0]));
+        }
+
+        var tt = 0;
+        //While timestep not over
+        while (RestTime[0] > ZERO) {
+            if(tt>100){
+                for (var i = 0; i < ballArray.length; i++) {
+                    ballArray[i].Position.set(Math.random()*400+100,Math.random()*400+100,-Math.random()*400-100);
+                    ballArray[i].Veloc.set(Math.random()*40-20,Math.random()*40-20,Math.random()*40-20);
+                    ballArray[i].Acell.set(0,-Math.random()*20,0);
+                    break;
+                }
+            }
+
+            lamda[0] = 10000; //initialize to very large value
+            //For all the balls find closest intersection between balls and planes/cylinders
+            for (var i = 0; i < ballArray.length; i++) {
+                //compute new position and distance
+                OldPos[i] = new THREE.Vector3();
+                OldPos[i].set(ballArray[i].Position.x,ballArray[i].Position.y,ballArray[i].Position.z);
+                uveloc.set(ballArray[i].Veloc.x,ballArray[i].Veloc.y,ballArray[i].Veloc.z);
+                uveloc.normalize();
+                ballArray[i].Position.addSelf(ballArray[i].Veloc.clone().multiplyScalar(RestTime[0]));
+                rt2 = OldPos[i].distanceTo(ballArray[i].Position);
+                //Test if collision occured between ball and all 5 planes
+
+                for(var k=0;k<objects.length;k++){
+                    var obj = objects[k];
+                    if(obj.type == "plane"){
+                        if (TestIntersionPlane(obj, OldPos[i], uveloc, rt, norm) == 1) {
+                            //Find intersection time
+                            //t2/t1=d2/d1
+                            rt4 = rt[0] * RestTime[0] / rt2;
+                            //if smaller than the one already stored replace and in timestep
+                            if (rt4 <= lamda[0]) {
+                                if (rt4 <= RestTime[0] + ZERO)
+                                    if (!((rt[0] <= ZERO) && (uveloc.dot(norm) > ZERO))) {
+                                        normal.set(norm.x,norm.y,norm.z);
+                                        point.addSelf(OldPos[i]).addSelf(uveloc.clone().multiplyScalar(rt[0]));
+                                        lamda[0] = rt4;
+                                        BallNr = i;
+                                    }
+                            }
+                        }
+                    }else if(obj.type == "cylinder"){
+                        if (TestIntersionCylinder(obj,ballArray[i].Radius, OldPos[i], uveloc, rt, norm, Nc) == 1) {
+                            rt4 = rt[0] * RestTime[0] / rt2;
+                            if (rt4 <= lamda[0]) {
+                                if (rt4 <= RestTime[0] + ZERO)
+                                    if (!((rt[0] <= ZERO) && (uveloc.dot(norm) > ZERO))) {
+                                        normal.set(norm.x,norm.y,norm.z);
+                                        point.set(Nc.x,Nc.y,Nc.z);
+                                        lamda[0] = rt4;
+                                        BallNr = i;
+                                    }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            //After all balls were teste with planes/cylinders test for collision
+            //between them and replace if collision time smaller
+            if (FindBallCol(Pos2, BallTime, RestTime, BallColNr1, BallColNr2) == 1) {
+//                document.getElementById('audio').stop();
+                document.getElementById('audio').play();
+
+                if ((lamda[0] == 10000) || (lamda[0] > BallTime[0])) {
+                    RestTime[0] = RestTime[0] - BallTime[0];
+                    var pb1 = new THREE.Vector3(), pb2 = new THREE.Vector3(), xaxis = new THREE.Vector3(), U1x = new THREE.Vector3(), U1y = new THREE.Vector3(), U2x = new THREE.Vector3(), U2y = new THREE.Vector3(), V1x = new THREE.Vector3(), V1y = new THREE.Vector3(), V2x = new THREE.Vector3(), V2y = new THREE.Vector3();
+                    var a, b;
+
+                    pb1.add(ballArray[BallColNr1[0]].Veloc.clone().multiplyScalar(BallTime[0]), OldPos[BallColNr1[0]]);
+                    pb2.add(ballArray[BallColNr2[0]].Veloc.clone().multiplyScalar(BallTime[0]), OldPos[BallColNr2[0]]);
+                    xaxis.sub(pb2, pb1);
+                    xaxis.normalize();
+
+                    a = xaxis.dot(ballArray[BallColNr1[0]].Veloc);
+                    U1x.copy(xaxis).multiplyScalar(a);
+                    U1y.sub(ballArray[BallColNr1[0]].Veloc, U1x);
+
+                    xaxis.sub(pb1, pb2);
+                    xaxis.normalize();
+
+                    b = xaxis.dot(ballArray[BallColNr2[0]].Veloc);
+                    U2x.copy(xaxis).multiplyScalar(b);
+                    U2y.sub(ballArray[BallColNr2[0]].Veloc, U2x);
+
+                    V1x.add(U1x, U2x);
+                    V1x.subSelf(new THREE.Vector3(U1x.x - U2x.x, U1x.y - U2x.y, U1x.z - U2x.z));
+                    V1x.multiplyScalar(0.5);
+
+                    V2x.add(U1x, U2x);
+                    V2x.subSelf(new THREE.Vector3(U2x.x - U1x.x, U2x.y - U1x.y, U2x.z - U1x.z));
+                    V2x.multiplyScalar(0.5);
+
+                    V1y.set(U1y.x,U1y.y,U1y.z);
+                    V2y.set(U2y.x,U2y.y,U2y.z);
+
+                    for (var j = 0; j < ballArray.length; j++){
+                        ballArray[j].Position.add(OldPos[j],ballArray[j].Veloc.clone().multiplyScalar(BallTime[0]));
+                    }
+
+                    ballArray[BallColNr1[0]].Veloc.add(V1x, V1y);
+                    ballArray[BallColNr2[0]].Veloc.add(V2x, V2y);
+                    continue;
+                }
+            }
+            //End of tests
+            //If test occured move simulation for the correct timestep
+            //and compute response for the colliding ball
+            if (lamda[0] != 10000) {
+                RestTime[0] -= lamda[0];
+
+                for (var j = 0; j < ballArray.length; j++){
+                    ballArray[j].Position.add(OldPos[j],(ballArray[j].Veloc.clone().multiplyScalar(lamda[0])));
+                }
+
+                rt2 = ballArray[BallNr].Veloc.length();
+                ballArray[BallNr].Veloc.normalize();
+
+                normal.multiplyScalar(-2 * normal.dot(ballArray[BallNr].Veloc));
+                ballArray[BallNr].Veloc.addSelf(normal, ballArray[BallNr].Veloc);
+                ballArray[BallNr].Veloc.normalize();
+                ballArray[BallNr].Veloc.multiplyScalar(rt2);
+            } else
+                RestTime[0] = 0;
+
+            tt++;
+        }
+
+        for (var j = 0; j < ballArray.length; j++){
+            ballArray[j].object.position.set(ballArray[j].Position.x, ballArray[j].Position.y, ballArray[j].Position.z);
+//            console.log(ballArray[j].Position.x+","+ballArray[j].Position.y+","+ballArray[j].Position.z)
+        }
+    }
+
+    /*************************************************************************************/
+    /*************************************************************************************/
+    /*** Fast Intersection Function between ray/plane ****/
+    /** p = p0+tu
+     /** n.(p-p1) = 0
+     /**
+     /** t = n.(p1-p0)/n.u
+     /*************************************************************************************/
+    /*************************************************************************************/
+
+    function TestIntersionPlane(plane, position, direction, lamda, pNormal) {
+
+        var DotProduct = direction.dot(plane.normal);
+        var l2;
+
+        //determine if ray paralle to plane
+        if ((DotProduct < ZERO) && (DotProduct > -ZERO))
+            return 0;
+
+        var substract = new THREE.Vector3(plane.position.x,plane.position.y,plane.position.z);
+        substract.subSelf(position);
+        l2 = (plane.normal.dot(substract)) / DotProduct;
+
+        if (l2 < -ZERO)
+            return 0;
+
+        pNormal.set(plane.normal.x,plane.normal.y,plane.normal.z);
+        lamda[0] = l2;
+        return 1;
+    }
+
+    /*************************************************************************************/
+    /*************************************************************************************/
+    /*** Fast Intersection Function between ray/cylinder ****/
+    /*************************************************************************************/
+
+    function TestIntersionCylinder(cylinder,ballRadius, position, direction, lamda, pNormal,newposition) {
+        var RC = new THREE.Vector3(), HB = new THREE.Vector3(), n = new THREE.Vector3(), D = new THREE.Vector3(), O = new THREE.Vector3();
+        var d, t, s, ln, cin, out;
+
+        RC.sub(position, cylinder.position);
+        n.cross(direction, cylinder.axis);
+
+        ln = n.length();
+
+        if ((ln < ZERO) && (ln > -ZERO))
+            return 0;
+
+        n.normalize();
+        d = Math.abs(RC.dot(n));
+
+        if (d <= (cylinder.radius + ballRadius)) {
+
+            O.cross(RC, cylinder.axis);
+            t = -O.dot(n) / ln;
+            O.cross(n, cylinder.axis);
+            O.normalize();
+            s = Math.abs(Math.sqrt((cylinder.radius + ballRadius) * (cylinder.radius + ballRadius) - d * d) / direction.dot(O));
+
+            cin = t - s;
+            out = t + s;
+
+            if (cin < -ZERO) {
+                if (out < -ZERO)
+                    return 0;
+                else
+                    lamda[0] = out;
+            } else if (out < -ZERO) {
+                lamda[0] = cin;
+            } else if (cin < out){
+            lamda[0] = cin;
+            }
+        else
+            lamda[0] = out;
+
+            newposition.add(position,direction.clone().multiplyScalar(lamda[0]));
+            HB.sub(newposition, cylinder.position);
+            pNormal.add(HB,cylinder.axis.clone().multiplyScalar(-HB.dot(cylinder.axis)));
+            pNormal.normalize();
+
+            return 1;
+        }
+        return 0;
+    }
+    /*************************************************************************************/
+    /*************************************************************************************/
+    /*** Find if any of the current balls ****/
+    /*** intersect with each other in the current timestep ****/
+    /***
+     * Returns the index of the 2 itersecting balls, the point and time of
+     * intersection
+     */
+    /*************************************************************************************/
+    /*************************************************************************************/
+
+    function FindBallCol(point, TimePoint, Time2, BallNr1, BallNr2) {
+
+        var RelativeVClone = new THREE.Vector3(), RelativeV = new THREE.Vector3(), posi = new THREE.Vector3();
+
+        var Timedummy2 = -1, Timedummy = 10000, MyTime = 0, Add = Time2[0] / 150;
+        var rays;
+
+        //Test all balls against eachother in 150 small steps
+        for (var i = 0; i < ballArray.length - 1; i++) {
+            for (var j = i + 1; j < ballArray.length; j++) {
+
+                RelativeV.sub(ballArray[i].Veloc, ballArray[j].Veloc);
+                RelativeVClone.set(RelativeV.x,RelativeV.y,RelativeV.z);
+                RelativeVClone.normalize();
+                rays = new TRay(OldPos[i], RelativeVClone);
+                MyTime = 0;
+
+                if ((rays.dist(OldPos[j])) > 40)
+                    continue;
+
+                while (MyTime < Time2[0]) {
+
+                    MyTime += Add;
+                    posi.add(RelativeV.clone().multiplyScalar(MyTime), OldPos[i]);
+                    if (posi.distanceTo(OldPos[j]) <= 40) {
+                        point.set(posi);
+                        if (Timedummy > (MyTime - Add))
+                            Timedummy = MyTime - Add;
+
+                        BallNr1[0] = i;
+                        BallNr2[0] = j;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (Timedummy != 10000) {
+            TimePoint[0] = Timedummy;
+            return 1;
+        }
+        return 0;
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2006 Google, Inc.
+
+newmtl Yellow_Trans
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 0.980392 0.803922
+Ks 0.330000 0.330000 0.330000
+d 0.900000
+
+newmtl __Croisillon
+Ka 0.000000 0.000000 0.000000
+Kd 0.756863 0.615686 0.443137
+Ks 0.330000 0.330000 0.330000
+map_Kd livinglight/__Croisillon.jpg
+
+newmtl Yellow_Solid_
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 0.980392 0.803922
+Ks 0.330000 0.330000 0.330000
+
